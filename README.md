@@ -70,68 +70,6 @@ In case you encounter errors due to mis-configurations, and the cleanup command 
 
   `$ ./destroy_all_cr.sh CYRIS_PATH CYBER_RANGE_PATH`
 
-## Deployment
-
-Below are detailed instructions about how to deploy and run CyRIS on a
-physical host.
-
-### Download CyRIS source code and base images
-
-CyRIS source code and a sample base images can be obtained from the
-GitHub. Please download and extract them somewhere in your machine
-(e.g., `/home/cyuser/`). You can setup everything in two
-sub-directories, `cyris/` and `images/`; the first one will contain
-the CyRIS source code, and the second one your base images.
-
-If you want to create your own base images, the following steps are
-necessary in order to make automatic IP assignments work with your
-virtual machines:
-
-- Copy the content of the directory
-  `cyris/instantiation/vm_clone/initif/` to
-  `/bin/cyberrange/initif` inside the virtual machine
-
-- Add to `/etc/rc.local` in the virtual machine the following line at
-  the end of the file:
-
-  /bin/cyberrange/initif/initif /bin/cyberrange/initif/initif.conf
-
-### Install necessary tools on physical machine
-
-In order to be able to use CyRIS, a few tools need to be installed in
-the physical host. For automating this task, the bash script
-`HOST-PREPARE.sh` is given (located under `cyris/` directory). Please
-make sure to execute this script successfully before running CyRIS.
-
-### Configure CyRIS constants
-
-There are a few constants that need to specify for CyRIS to use. These
-constants are specified in the file `cyris/CONFIG`, including:
-
-- `ABS_PATH`: The absolute path of the directory of CyRIS
-  (e.g., `/home/cyuser/cyris`).
-
-- `CYBER_RANGE_DIR`: The absolute path of the directory where CyRIS
-  stores base images and other scripts that are related to the being
-  created cyber range.
-
-- `GW_MODE`: This is for describing the network topology that the
-  physical machine is in. If there is a gateway machine that stands
-  between the physical machine and the outside network, then the
-  constant `GW_MODE` should be set to "True". In contrast, if the
-  physical machine connects directly to the outside network, the
-  constant `GW_MODE` will be set to "False".
-
-- `GW_ACCOUNT`: The user account on the gateway machine.
-
-- `GW_MGMT_ADDR`: The management address of the gateway machine.
-
-- `GW_INSIDE_ADDR`: The internal address of the gateway machine.
-
-Note that if the `GW_MODE = False`, then the `GW_ACCOUNT`,
-`GW_MGMT_ADDR`, `GW_INSIDE_ADDR` are not needed to set.
-
-
 ## Running CyRIS
 
 Below are the detailed steps to follow in order to run CyRIS.
