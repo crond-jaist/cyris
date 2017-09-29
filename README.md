@@ -10,110 +10,65 @@ CyRIS is written in Python, and has various features, including system configura
 
 Next we provide brief information on the prerequisites for running CyRIS, as well as its setup and use. Please refer to the accompanying User Guide for details.
 
-## Prerequisites
+## Installation
 
-To run CyRIS, please make sure to check the following regarding your
-physical host:
+The procedure for installing and configuring CyRIS is rather complex, therefore you should refer to the User Guide for details. In particular the following issues are to be considered:
 
-- Ubuntu OS has to be installed. In addition, because CyRIS constructs
-  virtual cyber range environments using KVM virtualization platform,
-  your physical machine is required to have a processor that supports
-  hardware virtualization. To verify this, please follow instructions
-  at
-  [KVM/Installation](https://help.ubuntu.com/community/KVM/Installation)
-  (section *Check that your CPU supports hardware virtualization*).
+* Hardware requirements: Hardware vrtualization support, Internet connection (optional) -- See Section 3.1 of the User Guide.
+* Software installation: Host preparation, base image preparation, CyRIS configuration -- See Section 3.2 of the User Guide.
 
-- Root permission (sudo) must be available for the account used to run
-  CyRIS. Moreover, it is also required for the account to be able to
-  execute commands via sudo without the need to enter a password.
-
-- SSH public & private keys must be present. For more information
-  about how to set up SSH keys, please refer to [Set Up SSH
-  Keys](https://www.digitalocean.com/community/tutorials/how-to-set-up-ssh-keys--2).
-
-- It is recommended to have an Internet connection in your physical
-  machine, so that CyRIS can connect to Linux repositories to download
-  and install tools during the cyber range creation process. If your
-  machine does not have an Internet connection, please make sure to
-  have a local repository that CyRIS can refer to.
 ## Quick Start
 
-This first section provides some basic instructions on how to set up
-CyRIS and run a basic test in order to make sure it operates
-correctly. Please make sure to refer to the rest of the file for an
-in-depth description, and in case of troubles.
+This section provides some basic instructions on how to run a basic test in order to make sure CyRIS operates correctly. In what follows we assume that the installation procedure mentioned above was conducted successfully, and the current directory is the directory where CyRIS was installed.
 
-### Installation
+### Items to check
+Some key issues that must not be forgotten before proceeding to running CyRIS are:
 
-Follow the steps below to install CyRIS to an Ubuntu host:
+* The configuration file `CONFIG` needs to reflect your actual CyRIS installation, in particular paying attention to the constants below:
 
-- Uncompress the CyRIS archive that you downloaded
+  `cyris_path = ...`
+  
+  `cyber_range_dir = ...`
 
-- Run a script to prepare the host for CyRIS operation
+* The sample KVM base image must be present on the CyRIS host, and the content of the file `basevm_small.xml` must reflect the actual location of the base image:
 
-  $ ./HOST-PREPARE.sh
+  `<source file ='...'/>`
 
-- Update the `CONFIG` file to reflect your CyRIS installation, in
-  particular paying attention to the constants below:
+* The content of sample file `examples/basic.yml` should reflect the actual host properties, and the actual location of the file `basevm_small.xml` in the corresponding sections:
 
-  ABS_PATH = ...
+  `mgmt_addr: ...`
 
-  CYBER_RANGE_DIR = ...
+  `account: ...`
 
-### Base image setup
+  `basevm_config_file: ...`
 
-For your convenience we also provide a sample KVM base image. Follow
-the steps below to set it up:
-
-- Uncompress the sample KVM base image archive to the same Ubuntu host
-  where CyRIS is installed
-
-- Edit the file `basevm_desktop.xml` to reflect the location of the
-  base image: `<source file ='...'/>`
 
 ### Operation test
+* Create a cyber range using the basic description edited above:
 
-Follow the steps below to run a basic test to verify that CyRIS is
-installed correctly. The commands are provided assuming that the
-current directory is `cyris/`.
+  `$ main/cyris.py examples/basic.yml CONFIG`
 
-- Edit the file `examples/basic.yml` to reflect the host
-  IP address and the location of the file `basevm_desktop.xml`
+* Check the details regarding the created cyber range:
 
-  mgmt_addr: ...
+  `$ cat cyber_range/123/range_details-cr123.yml`
 
-  account: ...
+* Check the notification about how to login to the cyber range:
 
-  basevm_config_file: ...
+  `$ cat cyber_range/123/range_notification-cr123.txt`
 
-- Create a cyber range using the basic description edited above
+* Try to login into the cyber range:
 
-  $ main/cyris.py examples/basic.yml CONFIG
+  `$ ssh trainee01@... -p ...`
 
-- Check the details about the created cyber range
+* Destroy the cyber range:
 
-  $ cat cyber_range/123/range_details-cr123.yml
-
-- Check the notification about how to login to the cyber range
-
-  $ cat cyber_range/123/range_notification-cr123.txt
-
-- Try to login to the cyber range
-
-  $ ssh trainee...@... -p ...
-
-- Destroy the cyber range
-
-  $ cyber_range/123/whole-controlled-destruction.sh
+  `$ main/range_cleanup.sh 123 CONFIG`
 
 ### Recovery from errors
 
-In case you encounter errors due to mis-configuration it is
-recommended that you cleanup the temporary files as follows:
+In case you encounter errors due to mis-configurations, and the cleanup command above is insufficient to restore correct operation, you can also clean up the temporary files via a special cleanup script (two arguments are required):
 
-- Run the cleanup script (two arguments are required)
-
-  $ ./destroy_all_cr.sh CYRIS_PATH CYBER_RANGE_PATH
+  `$ ./destroy_all_cr.sh CYRIS_PATH CYBER_RANGE_PATH`
 
 ## Deployment
 
