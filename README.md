@@ -189,9 +189,8 @@ want in the cyber range, tools and settings on each machine, the
 network topology, etc.). The place for doing it is a cyber range
 description file , which is written under the YAML format for the
 readability purpose. A full example of this file is provided in
-`cyris/CYBER-RANGE-DEF-EXAMPLE.yml`, in that it contains all the
-details corresponding to each setting. Please refer to it for more
-information.
+`cyris/full.yml`, and contains comments and exampled for each setting.
+Please refer to it for more information.
 
 ### Run CyRIS
 
