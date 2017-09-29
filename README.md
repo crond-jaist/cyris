@@ -77,7 +77,7 @@ Follow the steps below to run a basic test to verify that CyRIS is
 installed correctly. The commands are provided assuming that the
 current directory is `cyris/`.
 
-- Edit the file `cr_desc_samples/basic_desc.yml` to reflect the host
+- Edit the file `examples/basic.yml` to reflect the host
   IP address and the location of the file `basevm_desktop.xml`
 
   mgmt_addr: ...
@@ -88,7 +88,7 @@ current directory is `cyris/`.
 
 - Create a cyber range using the basic description edited above
 
-  $ main/cyris.py cr_desc_samples/basic_desc.yml CONFIG
+  $ main/cyris.py examples/basic.yml CONFIG
 
 - Check the details about the created cyber range
 
@@ -133,7 +133,7 @@ necessary in order to make automatic IP assignments work with your
 virtual machines:
 
 - Copy the content of the directory
-  `cyris/cyber_instantiation/vm_clone/initif/` to
+  `cyris/instantiation/vm_clone/initif/` to
   `/bin/cyberrange/initif` inside the virtual machine
 
 - Add to `/etc/rc.local` in the virtual machine the following line at
@@ -250,12 +250,12 @@ follows:
 - The tool `cpulimit` is currently used to control CPU utilization for
   dummy malware emulation. If you require this functionality, please
   copy the *source code* of `cpulimit` to the directory
-  `cyris/cyber_instantiation/malware_creation/cpulimit`. `cpulimit` is
+  `cyris/instantiation/malware_creation/cpulimit`. `cpulimit` is
   available here: https://github.com/opsengine/cpulimit
 
 - The noise addition feature for traffic capture file generation
   requires the presence of several pcap files in the directory
-  `cyris/cyber_instantiation/logs_preparation`. If you require this
+  `cyris/instantiation/logs_preparation`. If you require this
   functionality, please create the files by capturing traffic with
   various data rates and name the files `noise_low.pcap`,
   `noise_medium.pcap` and `noise_high.pcap`.
