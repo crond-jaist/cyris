@@ -1,0 +1,16 @@
+Dear {instructor},
+
+Thank you very much for using our cybersecurity training framework.
+We would like to inform you that Training Session #{ID} is ready to
+use. Please find below detailed information about how to access the
+created cyber range instances:
+
+{num_cr_instances}
+{info_cr_instances}
+
+We hope you will gain valuable knowledge about cybersecurity through
+this training. Feel free to contact us if you want to share with us
+what you think about our training framework.
+
+Best of luck,
+The Administration Team

@@ -1,0 +1,18 @@
+CyRIS v0.2
+----------
+* Changed format of configuration file CONFIG, and the section name
+  [config] is now required; parameter names use lower case, and
+  ABS_PATH has been renamed to cyris_path for clarity
+* Added the tag "full_name" to the "add_account" operation, so that
+  the user's full name can also be specified for new accounts.
+* Set "yum" as default package manager, hence the "package_manager"
+  field can now be omitted in "install_package" if the target OS is
+  CentOS or equivalent
+* Fixed error in DMZ example by which the "forwarding_rules" field in
+  the "guests" section of "clone_setttings" was incorrectly written as
+  "firewall_rules"
+* Minor improvements and bug fixes
+
+CyRIS v0.1
+----------
+* Firs public release

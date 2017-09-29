@@ -1,0 +1,33 @@
+# Allow Loopback access
+-A INPUT -i lo -j ACCEPT
+-A OUTPUT -o lo -j ACCEPT
+
+# Allow ALL incoming SSH
+-A INPUT -i eth0 -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A OUTPUT -o eth0 -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT
+
+# Allow ALL outgoing SSH
+-A OUTPUT -o eth0 -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A INPUT -i eth0 -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT
+
+# Allow ALL outgoing HTTP
+-A OUTPUT -o eth0 -p tcp --dport 80 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A INPUT -i eth0 -p tcp --sport 80 -m state --state ESTABLISHED -j ACCEPT
+
+# Allow ALL outgoing HTTPS
+-A OUTPUT -o eth0 -p tcp --dport 443 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A INPUT -i eth0 -p tcp --sport 443 -m state --state ESTABLISHED -j ACCEPT
+
+# Allow ALL outgoing HTTP
+-A OUTPUT -o eth0 -p tcp --dport 443 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A INPUT -i eth0 -p tcp --sport 443 -m state --state ESTABLISHED -j ACCEPT
+
+# Allow outgoing DNS connections
+-A OUTPUT -p udp -o eth0 --dport 53 -j ACCEPT
+-A INPUT -p udp -i eth0 --sport 53 -j ACCEPT
+-A OUTPUT -p tcp -o eth0 --dport 53 -j ACCEPT
+-A INPUT -p tcp -i eth0 --sport 53 -j ACCEPT
+
+# Block every other type of connection
+-A INPUT -i eth0 -j DROP
+-A OUTPUT -o eth0 -j DROP

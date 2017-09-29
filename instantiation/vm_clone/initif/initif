@@ -1,0 +1,104 @@
+#!/bin/sh
+
+Set_Addr()
+{
+    DEV=`echo ${line} | gawk '{
+        print $1;
+    }'`
+    ADDR=`echo ${line} | gawk '{
+        print $2;
+    }'`
+    MAC=`/sbin/ip link show dev ${DEV} | gawk '{
+        if($1 ~ /link\/ether/) {
+            print $2;
+        }
+    }'`
+
+    bash /bin/cyberrange/initif/ip_calc.sh ${ADDR} | gawk 'BEGIN {
+        dev = "'${DEV}'";
+        ipcmd = "/sbin/ip";
+        macaddr = "'"${MAC}"'";
+        split(macaddr, macoct, ":");
+        for(i = 1; i <= 6; i++) {
+            macoct[i] = "0x" macoct[i];
+        }
+    }
+    {
+        if($1 ~ /Address/) {
+            ip = $2;
+            split(ip, ipoct, ".");
+        }
+        else if($1 ~ /Netmask/) {
+            mask = $2;
+            prefix = $4;
+        }
+        else if($1 ~ /Broadcast/) {
+            brd = $2;
+        }
+        else if($1 ~ /Network/) {
+            network = $2;
+        }
+        else if($1 ~ /Netmask/) {
+            prefix = int($2);
+        }
+    }
+    END {
+        if(prefix == 8) {
+            ip = ipoct[1] "." strtonum(macoct[4]) "." strtonum(macoct[5]) "." strtonum(macoct[6]);
+            gw = ipoct[1] "." ipoct[2] "." strtonum(macoct[5]) ".1";
+        }
+        else if(prefix == 16) {
+            ip = ipoct[1] "." ipoct[2] "." strtonum(macoct[5]) "." strtonum(macoct[6]);
+            gw = ipoct[1] "." ipoct[2] "." strtonum(macoct[5]) ".1";
+        }
+        else if(prefix == 24) {
+            ip = ipoct[1] "." ipoct[2] "." ipoct[3] "." strtonum(macoct[6]);
+            gw = ipoct[1] "." ipoct[2] "." strtonum(macoct[5]) ".1";
+        }
+        cmd = "service NetworkManager stop";
+        system(cmd);
+        cmd = "chkconfig NetworkManager off";
+        system(cmd);
+        cmd = ipcmd " addr add " ip "/" 24 " broadcast " brd " dev " dev;
+        system(cmd);
+        cmd = "route add default gw " gw;
+        system(cmd);
+#        cmd = "ifup " dev;
+#        system(cmd);
+        cmd = ipcmd " link set up " dev;
+        system(cmd);
+    }'
+}
+
+Set_Route()
+{
+    echo "${line}" | gawk '{
+        dst = $2;
+        gw = $3;
+        cmd = "/sbin/ip route add " dst " via " gw;
+        system(cmd);
+    }';
+}
+
+CONF=$1
+cat $CONF | while read line
+do
+    case ${line} in
+        \#*)
+        ;;
+        eth*)
+            Set_Addr "${line}";
+        ;;
+        route*)
+            Set_Route "${line}";
+        ;;
+    esac
+done
+
+#set hostname
+#hostname=`/sbin/ifconfig -a | grep eth0 | gawk '{
+#    split($5, macaddr, ":");
+#    hostname = "centos." macaddr[6];
+#    print hostname;
+#}'`
+#echo ${hostname} > /proc/sys/kernel/hostname;

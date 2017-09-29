@@ -1,0 +1,16 @@
+[config]
+
+# The absolute path of the top CyRIS directory
+# (remember to have the slash "/" at the end of the path)
+cyris_path = /home/cyuser/cyris/
+
+# The absolute path where cyber ranges are to be instantiated
+# (remember to have the slash "/" at the end of the path)
+cyber_range_dir = /home/cyuser/cyris/cyber_range/
+
+# Information regarding the gateway
+# (details are not used if gw_mode is set to "off")
+gw_mode = off
+#gw_account = gw_user
+#gw_mgmt_addr = gw_hostname
+#gw_inside_addr = 172.16.1.1
