@@ -1,12 +1,12 @@
 # CyRIS: Cyber Range Instantiation System
 
-CyRIS is a tool for facilitating cybersecurity training by automating the creation and management of the corresponding training environments (a.k.a, cyber ranges) based on a description provided in YAML format. CyRIS being developed by the Cyber Range Organization and Design (CROND) NEC-endowed chair at the Japan Advanced Institute of Science and Technology (JAIST).
+CyRIS is a tool for facilitating cybersecurity training by automating the creation and management of the corresponding training environments (a.k.a, cyber ranges) based on a description in YAML format. CyRIS is being developed by the Cyber Range Organization and Design (CROND) NEC-endowed chair at the Japan Advanced Institute of Science and Technology (JAIST).
 
 An overview of the CyRIS workflow is provided below. Based on the input cyber range description, and a collection of virtual machine base images, CyRIS performs preparation, content installation and cloning in order to deploy the cyber range on a given server infrastructure.
 
 ![CyRIS workflow](https://github.com/crond-jaist/cyris/blob/master/cyris_workflow.png "CyRIS workflow")
 
-CyRIS is written in Python, and has various features, including system configuration, tool installation, incident emulation, content management, and clone management. If interested, please download the latest release and let us know if you have any issues. A sample virtual machine base image is also provided for your convenience. Please refer to the accompanying User Guide for details.
+CyRIS is written in Python, and has various features, including system configuration, tool installation, incident emulation, content management, and clone management. If interested, please download the latest release and let us know if you have any issues. A sample virtual machine base image and a User Guide are also provided for your convenience.
 
 The procedure for installing and configuring CyRIS is rather complex, therefore you should refer to the User Guide. In particular, the following issues are to be considered:
 
@@ -15,9 +15,9 @@ The procedure for installing and configuring CyRIS is rather complex, therefore 
 
 ## Quick Start
 
-This section provides some basic instructions on how to run a basic test in order to make sure CyRIS operates correctly. In what follows we assume that the installation procedure mentioned above was conducted successfully, and the current directory is the directory where CyRIS was installed.
+This section provides some basic instructions on how to run a basic test in order to make sure CyRIS operates correctly. In what follows we assume that the installation procedure mentioned above was conducted successfully, and the current directory is the directory where CyRIS was installed. Please refer to the accompanying User Guide for details.
 
-### Items to check
+### Preliminary check
 Some key issues that must not be forgotten before proceeding to running CyRIS are:
 
 * The configuration file `CONFIG` needs to reflect your actual CyRIS installation, in particular paying attention to the constants below:
@@ -39,7 +39,7 @@ Some key issues that must not be forgotten before proceeding to running CyRIS ar
   `basevm_config_file: ...`
 
 
-### Operation test
+### Basic operation
 * Create a cyber range using the basic description edited above:
 
   `$ main/cyris.py examples/basic.yml CONFIG`
