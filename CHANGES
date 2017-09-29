@@ -1,17 +1,21 @@
 CyRIS v0.2
 ----------
+* Simplified README.md as most information is in User Guide
+* Added a generic multi-host description sample
+* Modified some directory and file names for consistency
+* Eliminated use of literal 'host_1' id in code related to pscp
 * Changed format of configuration file CONFIG, and the section name
   [config] is now required; parameter names use lower case, and
   ABS_PATH has been renamed to cyris_path for clarity
-* Added the tag "full_name" to the "add_account" operation, so that
-  the user's full name can also be specified for new accounts.
-* Set "yum" as default package manager, hence the "package_manager"
-  field can now be omitted in "install_package" if the target OS is
-  CentOS or equivalent
 * Fixed error in DMZ example by which the "forwarding_rules" field in
   the "guests" section of "clone_setttings" was incorrectly written as
   "firewall_rules"
-* Minor improvements and bug fixes
+* Set "yum" as default package manager, hence the "package_manager"
+  field can now be omitted in "install_package" if the target OS is
+  CentOS or equivalent
+* Added the tag "full_name" to the "add_account" operation, so that
+  the user's full name can also be specified for new accounts.
+* Other minor improvements and bug fixes
 
 CyRIS v0.1
 ----------
