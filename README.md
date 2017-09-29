@@ -4,7 +4,7 @@ CyRIS is a tool for facilitating cybersecurity training by automating the creati
 
 An overview of the processing flow of CyRIS is provided below. Based on the input cyber range description, and a collection of virtual machine base images, CyRIS performs preparation, content installation and cloning in order to deploy the cyber range on a given server infrastructure.
 
-![CyRIS workflow](https://github.com/crond-jaist/cyris/blob/master/CyRIS_flow.png "CyRIS workflow")
+![CyRIS workflow](https://github.com/crond-jaist/cyris/blob/master/cyris_workflow.png "CyRIS workflow")
 
 CyRIS is written in Python, and has various features, including system configuration, tool installation, incident emulation, content management, and clone management. If interested, please download the latest release and let us know if you have any issues. A sample virtual machine base image is also provided for your convenience.
 
