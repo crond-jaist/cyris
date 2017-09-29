@@ -10,14 +10,14 @@ CyRIS is written in Python, and has various features, including system configura
 
 The procedure for installing and configuring CyRIS is rather complex, therefore you should refer to the User Guide. In particular, the following issues are to be considered:
 
-* Hardware requirements: Hardware vrtualization support, Internet connection (optional) -- See Section 3.1 of the User Guide.
-* Software installation: Host preparation, base image preparation, CyRIS configuration -- See Section 3.2 of the User Guide.
+* _Hardware requirements_: Hardware vrtualization support, Internet connection (optional) -- See Section 3.1 of the User Guide.
+* _Software installation_: Host preparation, base image preparation, CyRIS configuration -- See Section 3.2 of the User Guide.
 
 ## Quick Start
 
 This section provides some basic instructions on how to run a basic test in order to make sure CyRIS operates correctly. In what follows we assume that the installation procedure mentioned above was conducted successfully, and the current directory is the directory where CyRIS was installed. Please refer to the accompanying User Guide for details.
 
-### Preliminary check
+### Preliminary checks
 Some key issues that must not be forgotten before proceeding to running CyRIS are:
 
 * The configuration file `CONFIG` needs to reflect your actual CyRIS installation, in particular paying attention to the constants below:
@@ -40,6 +40,7 @@ Some key issues that must not be forgotten before proceeding to running CyRIS ar
 
 
 ### Basic operation
+A typical sequence of operations is as follows:
 * Create a cyber range using the basic description edited above:
 
   `$ main/cyris.py examples/basic.yml CONFIG`
