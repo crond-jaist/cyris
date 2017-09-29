@@ -6,13 +6,9 @@ An overview of the CyRIS workflow is provided below. Based on the input cyber ra
 
 ![CyRIS workflow](https://github.com/crond-jaist/cyris/blob/master/cyris_workflow.png "CyRIS workflow")
 
-CyRIS is written in Python, and has various features, including system configuration, tool installation, incident emulation, content management, and clone management. If interested, please download the latest release and let us know if you have any issues. A sample virtual machine base image is also provided for your convenience.
+CyRIS is written in Python, and has various features, including system configuration, tool installation, incident emulation, content management, and clone management. If interested, please download the latest release and let us know if you have any issues. A sample virtual machine base image is also provided for your convenience. Please refer to the accompanying User Guide for details.
 
-Next we provide brief information on the prerequisites for running CyRIS, as well as its setup and use. Please refer to the accompanying User Guide for details.
-
-## Installation
-
-The procedure for installing and configuring CyRIS is rather complex, therefore you should refer to the User Guide for details. In particular the following issues are to be considered:
+The procedure for installing and configuring CyRIS is rather complex, therefore you should refer to the User Guide. In particular, the following issues are to be considered:
 
 * Hardware requirements: Hardware vrtualization support, Internet connection (optional) -- See Section 3.1 of the User Guide.
 * Software installation: Host preparation, base image preparation, CyRIS configuration -- See Section 3.2 of the User Guide.
@@ -69,28 +65,6 @@ Some key issues that must not be forgotten before proceeding to running CyRIS ar
 In case you encounter errors due to mis-configurations, and the cleanup command above is insufficient to restore correct operation, you can also clean up the temporary files via a special cleanup script (two arguments are required):
 
   `$ ./destroy_all_cr.sh CYRIS_PATH CYBER_RANGE_PATH`
-
-## Known issues
-
-There are a number of limitations in the current CyRIS version, as
-follows:
-
-- Although we have already tested CyRIS in various scenarios, it is
-  not considered yet to be production-ready. Issue reporting via
-  GitHub is welcome.
-
-- The tool `cpulimit` is currently used to control CPU utilization for
-  dummy malware emulation. If you require this functionality, please
-  copy the *source code* of `cpulimit` to the directory
-  `cyris/instantiation/malware_creation/cpulimit`. `cpulimit` is
-  available here: https://github.com/opsengine/cpulimit
-
-- The noise addition feature for traffic capture file generation
-  requires the presence of several pcap files in the directory
-  `cyris/instantiation/logs_preparation`. If you require this
-  functionality, please create the files by capturing traffic with
-  various data rates and name the files `noise_low.pcap`,
-  `noise_medium.pcap` and `noise_high.pcap`.
 
 ## References
 
