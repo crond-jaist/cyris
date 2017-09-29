@@ -1,0 +1,39 @@
+# sample configuration for iptables service
+# you can edit this manually or use system-config-firewall
+# please do not ask us to add additional ports/services to this default configuration
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+# Allow Loopback access
+-A INPUT -i lo -j ACCEPT
+-A OUTPUT -o lo -j ACCEPT
+
+# Allow ALL incoming SSH
+-A INPUT -i eth0 -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A OUTPUT -o eth0 -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT
+
+# Allow ALL outgoing SSH
+-A OUTPUT -o eth0 -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A INPUT -i eth0 -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT
+
+# Allow ALL incoming HTTP
+-A INPUT -i eth0 -p tcp --dport 80 -m state --state NEW,ESTABLISHED -j ACCEPT
+-A OUTPUT -o eth0 -p tcp --sport 80 -m state --state ESTABLISHED -j ACCEPT
+
+# Allow outgoing DNS connections
+-A OUTPUT -p udp -o eth0 --dport 53 -j ACCEPT
+-A INPUT -p udp -i eth0 --sport 53 -j ACCEPT
+-A OUTPUT -p tcp -o eth0 --dport 53 -j ACCEPT
+-A INPUT -p tcp -i eth0 --sport 53 -j ACCEPT
+
+# Allow Samba fire transfer
+-A INPUT -m state --state NEW -p tcp --dport 137 -j ACCEPT
+-A INPUT -m state --state NEW -p tcp --dport 138 -j ACCEPT
+-A INPUT -m state --state NEW -p tcp --dport 139 -j ACCEPT
+-A INPUT -m state --state NEW -p tcp --dport 445 -j ACCEPT
+
+# Block every other type of connection
+-A INPUT -i eth0 -j DROP
+-A OUTPUT -o eth0 -j DROP
+COMMIT

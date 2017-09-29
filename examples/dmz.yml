@@ -1,0 +1,119 @@
+---
+- host_settings:
+  - id: host_1
+    mgmt_addr: 172.16.1.7
+    virbr_addr: 192.168.122.1
+    account: cyuser
+
+- guest_settings:
+  - id: firewall
+    basevm_host: host_1
+    basevm_config_file: /home/cyuser/images/basevm_gateway.xml
+    basevm_type: kvm
+    tasks:
+    - add_account:
+      - account: robot.abc
+        passwd: abcrb1357
+    - modify_account:
+      - account: root
+        new_passwd: abcd.1234
+
+  - id: dnsmail
+    basevm_host: host_1
+    basevm_config_file: /home/cyuser/images/basevm_dnsmail.xml
+    basevm_type: kvm
+    tasks:
+    - add_account:
+      - account: robot.abc
+        passwd: abcrb1357
+    - modify_account:
+      - account: root
+        new_passwd: abcd.1234
+    - install_package:
+      - package_manager: yum
+        name: wget
+      - package_manager: yum
+        name: telnet
+
+  - id: filesrv
+    basevm_host: host_1
+    basevm_config_file: /home/cyuser/images/basevm_filesrv.xml
+    basevm_type: kvm
+    tasks:
+    - add_account:
+      - account: robot.abc
+        passwd: abcrb1357
+    - modify_account:
+      - account: root
+        new_passwd: abcd.1234
+    - install_package:
+      - package_manager: yum
+        name: samba samba-client samba-common
+      - package_manager: yum
+        name: wget
+
+  - id: dbsrv
+    basevm_host: host_1
+    basevm_config_file: /home/cyuser/images/basevm_dbsrv.xml
+    basevm_type: kvm
+    tasks:
+    - add_account:
+      - account: robot.abc
+        passwd: abcrb1357
+    - modify_account:
+      - account: root
+        new_passwd: abcd.1234
+    - install_package:
+      - package_manager: yum
+        name: wget
+
+  - id: desktop
+    basevm_host: host_1
+    basevm_config_file: /home/cyuser/images/basevm_desktop.xml
+    basevm_type: kvm
+    tasks:
+    - add_account:
+      - account: daniel
+        passwd: JamesBond
+    - modify_account:
+      - account: root
+        new_passwd: theroot
+    - install_package:
+      - package_manager: yum
+        name: nmap
+      - package_manager: yum
+        name: telnet
+
+- clone_settings:
+  - range_id: 124
+    hosts:
+    - host_id: host_1
+      instance_number: 1
+      guests:
+      - guest_id: firewall
+        number: 1
+        forwarding_rules:
+        - rule: src=office,external dst=internal.dbsrv dport=3306
+        - rule: src=office,external dst=internal.filesrv dport=139,445
+        - rule: src=office dst=external dport=25,53
+        entry_point: yes
+      - guest_id: dnsmail
+        number: 1
+      - guest_id: filesrv
+        number: 1
+      - guest_id: dbsrv
+        number: 1
+      - guest_id: desktop
+        number: 1
+      topology:
+      - type: custom
+        networks:
+        - name: external
+          members: dnsmail.eth0
+          gateway: firewall.eth0
+        - name: internal
+          members: filesrv.eth0, dbsrv.eth0
+          gateway: firewall.eth1
+        - name: office
+          members: desktop.eth0
+          gateway: firewall.eth2

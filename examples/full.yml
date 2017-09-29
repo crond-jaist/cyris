@@ -1,0 +1,357 @@
+
+#########################################################################################
+# This is a sample cyber range definition description for the CyRIS cyber range
+# instantiation system. The description is written in YAML format and contains
+# three main sections, as follows:
+# - host_settings:  Contains information about the hosts the cyber range is to be
+#                   deployed on, including an id, a management address, a virtual
+#                   bridge address, and a management account.
+# - guest_settings: Provides information about the base images. It defines the entire
+#                   content of the cyber range that CyRIS needs to prepare.
+# - clone_settings: Gives details about the cloning phase. It has a unique range id,
+#                   and information about hosts, guests, and network topology.
+#########################################################################################
+
+
+#########################################################################################
+# Start of the host_settings section. For each host, it consists of 4 fields:
+#  @param    id           The id of the host.
+#  @param    mgmt_addr    The management address used to access the host.
+#  @param    virbr_addr   The virtual bridge address that the host uses to communicate
+#                         with the virtual machines that will be created on it.
+#                         On installation KVM typically creates a default virtual
+#                         bridge virbr0 with the default IP address 192.168.122.1.
+#  @param    account      The account name on the host that is to be used by CyRIS.
+#                         CyRIS accesses the host by SSH public key, which needs to be
+#                         prepared in advance by the user.
+#
+# The number of hosts specified in this section is not limited. In this example,
+# it consists of one host with id "host_1".
+#########################################################################################
+
+- host_settings:
+  - id: host_1
+    mgmt_addr: 172.16.24.1
+    virbr_addr: 192.168.122.1
+    account: cyuser
+
+#########################################################################################
+# Start of the guest_settings section. For each base image, it consists of 7 fields:
+# @param    id                    The id of the base image, which by convention reflects
+#                                 its role in the cyber range (desktop, web server,
+#                                 database, etc.).
+# @param    ip_addr               Optional. The IP address of the base image, so that CyRIS can
+#                                 access it from the host.
+# @param    basevm_host           The host that the base image is located on.
+# @param    basevm_config_file    The path to the configuration file of the base image,
+#                                 for KVM to be able to define and start it.
+# @param    basevm_type           The virtualization type of the base image. Currently
+#                                 CyRIS supports only KVM virtualization.
+# @param    tasks                 The definition of all the setup tasks that CyRIS needs
+#                                 to do on the base image. Specific parameters needed for
+#                                 each kind of task are presented in the section below.
+#
+# The number of base images specified in this section is also not limited. This example
+# includes three of them, a desktop, a web server, and a firewall server.
+#########################################################################################
+
+- guest_settings:
+
+  #######################################################################################
+  # Specify information for the base image named "desktop".
+  - id: desktop
+    ip_addr: 192.168.122.50
+    basevm_host: host_1
+    basevm_config_file: /home/cyuser/kvm/images-development/basevm_desktop_dev.xml
+    basevm_type: kvm
+    tasks:
+    # The add_account task is for adding a new account to the base image. It needs two
+    # parameters, which are:
+    # @param    account      Name of the new account.
+    # @param    passwd       Password of the new account.
+    # @param    full_name    Full name of user.
+    - add_account:
+      - account: daniel
+        passwd: danielpass
+        full_name: Daniel Radcliffe
+
+    # The modify_account task is for changing the information of an existing account.
+    # Depending on the need to modifying only the name, only the password, or both,
+    # it needs two or three parameters, which are:
+    # @param    account        Name of an existing account.
+    # @param    new_account    New name for the specified account.
+    # @param    new_passwd     New password for the specified account.
+    - modify_account:
+      - account: root
+        new_passwd: abcd1234
+
+    # The install_package account task is for installing a package from a repository,
+    # by using some package manager (yum, apt-get, and so on, depending on the OS
+    # of the base image). It has three parameters:
+    # @param    package_manager     yum, apt-get, etc., depending on the OS.
+    # @param    name                Name of the package to be installed.
+    # @param    version             Version of the package (optional). By default
+    #                               CyRIS will install the latest version.
+    - install_package:
+      - package_manager: yum
+        name: wireshark
+        version: 1.8.10
+      - package_manager: yum
+        name: GeoIP
+      - package_manager: yum
+        name: nmap
+
+    # The emulate_attack task is for deploying an attack in the cyber range, which is
+    # used to create logs and other traces. In the current stage, CyRIS supports emulating
+    # actual ssh dictionary attacks. The needed parameters are presented below:
+    # - SSH dictionary attack:
+    #   @param    attack_type      Type of the attack (ssh_attack).
+    #   @param    target_account   The account that is targeted in the attack.
+    #   @param    attempt_number   Number of login attempts in the attack.
+    #   @param    attack_time      Date when attack is supposed to take place.
+
+    - emulate_attack:
+      - attack_type: ssh_attack
+        target_account: daniel
+        attempt_number: 200
+        attack_time: 20161231
+
+    # The emulate_traffic_capture_file task is for generating pcap files that contain
+    # specific network traffic traces. In the current stage, CyRIS supports generating
+    # traffic traces for ssh dictionary attack, DOS attack, and DDOS attack.
+    # For each traffic pattern, it needs different parameters, as follows:
+    # - SSH dictionary attack:
+    #   @param    format            Format of the traffic file (pcap).
+    #   @param    file_name         Name of the traffic file.
+    #   @param    attack_type       Type of the traffic pattern (ssh_attack).
+    #   @param    attack_source     The IP address from which the attack is initiated.
+    #   @param    noise_level       How much normal traffic needs to be added
+    #                               into the file, to make it more realistic and
+    #                               challenging to detect the attack pattern.
+    #                               The level can be low, medium, high.
+    # - DOS attack and DDOS attack:
+    #   @param    format            Format of the traffic file (pcap).
+    #   @param    file_name         Name of the traffic file.
+    #   @param    attack_type       Type of the traffic pattern (dos_attack, ddos_attack).
+    #   @param    noise_level       How much normal traffic needs to be mixed
+    #                               into the file, so as to make it more realistic and
+    #                               challenging to detect the attack pattern.
+    #                               The level can be low, medium, high.
+    - emulate_traffic_capture_file:
+      - format: pcap
+        file_name: /home/trainee/traffic1.pcap
+        attack_type: ssh_attack
+        attack_source: 69.89.31.226
+        noise_level: medium
+      - format: pcap
+        file_name: /home/trainee/traffic2.pcap
+        attack_type: dos_attack
+        noise_level: medium
+
+    # The emulate_malware task is for starting a dummy malware process.
+    # It can run under two modes at the current stage: performing a calculation
+    # or listening to a specified port. Depending on the execution mode,
+    # the task takes different parameters:
+    # - Dummy calculation mode:
+    #   @param    name               Name of the dummy malware process.
+    #   @param    mode               Running mode of the malware => "dummy_calculation".
+    #   @param    cpu_utilization    Percent of CPU the malware will consume.
+    #
+    # - Port listening mode:
+    #   @param    name               Name of the dummy malware process.
+    #   @param    mode               Running mode of the malware => "port_listening.
+    #   @param    port               Port number the malware listens to.
+    - emulate_malware:
+      - name: daemon
+        mode: dummy_calculation
+        cpu_utilization: 40
+
+    # The copy_content task is for copying some data (files, etc.) to the cyber range.
+    # This task needs two parameters:
+    # @param    src    The absolute path (on the host) of the data to be copied.
+    # @param    dst    The absolute path (on the guest) of the location where to
+    #                  copy the data to.
+    - copy_content:
+      - src: /home/cyuser/database/penetration_testing
+        dst: /bin/cyberrange
+        dst: /home
+      - src: /home/cyuser/database/flag.txt
+        dst: /root
+
+    # The execute_program task is for executing scripts/programs (python, bash,
+    # ruby, etc.), which have been copied to the cyber range in the copy_content tasks. 
+    # This function needs three parameters:
+    # @param    program        The absolute path of the location of the program.
+    # @param    interpreter    The required shell/interpreter/compiler (python, bash,
+    #                          ruby, gcc, etc.).
+    # @param    execute_time   This parameter is optional, indicating the time that 
+    #                          CyRIS will executes the program, whether before or after
+    #                          cloning phase. If users want to execute it before the 
+    #                          cloning phase, then this parameter is not needed to specified. 
+    #                          In case of after-cloning-phase execution, the value for it 
+    #                          should be "after_clone".
+    - execute_program:
+      - program: /bin/cyberrange/database/penetration_testing/install_pip.sh
+        interpreter: bash
+      - program: /bin/cyberrange/database/penetration_testing/prepare.sh
+        interpreter: bash
+        execute_time: after_clone
+
+    # The firewall_rules task is for specifying and setting up firewall rules. CyRIS will
+    # automatically set up the firewall rules specified in the provided file(s).
+    # Only the iptables tool is currently supported.
+    #
+    # @param    rule    The file which contains a list of firewall rules.
+    - firewall_rules:
+      - rule: /home/cyuser/cyris-development/database/firewall_ruleset_forwarding
+      - rule: /home/cyuser/cyris-development/database/firewall_ruleset_inputoutput
+
+  #######################################################################################
+  # Specify information for the base image named "webserver".
+  - id: webserver
+    ip_addr: 192.168.122.51
+    basevm_host: host_1
+    basevm_config_file: /home/cyuser/images/basevm_webserver.xml
+    basevm_type: kvm
+    basevm_name: basevm_webserver
+    tasks:
+    - add_account:
+      - account: daniel
+        passwd: JamesBond
+
+    - edit_account:
+      - account: root
+        new_passwd: new-root-password
+
+    - install_package:
+      - package_manager: yum
+        name: httpd
+      - package_manager: yum
+        name: php
+
+    - emulate_traffic_capture_files:
+      - format: pcap
+        file_name: /home/traffic.pcap
+        attack_type: ddos_attack
+        noise_level: medium
+
+    - copy_content:
+      - src: /home/cyuser/database/penetration_testing
+        dst: /bin/cyberrange
+      - src: /home/cyuser/database/aircrack-ng
+        dst: /bin/cyberrange
+      - src: /home/cyuser/database/wireless.pcap
+        dst: /home
+      - src: /home/cyuser/database/flag.txt
+        dst: /root
+
+    - execute_program:
+      - program: /bin/cyberrange/penetration_testing/prepare.sh
+        interpreter: bash
+      - program: /bin/cyberrange/aircrack-ng.sh
+        interpreter: bash
+
+    - firewall_rules:
+      - rule: /home/cyuser/database/firewall_ruleset_webserver
+
+  #######################################################################################
+  # Specify information for the base image named "firewall".
+  - id: firewall
+    ip_addr: 192.168.122.10
+    basevm_host: host_1
+    basevm_config_file: /home/cyuser/images/basevm_gateway.xml
+    basevm_type: kvm
+    basevm_name: basevm_gateway
+    tasks:
+    - add_account:
+      - account: robot.abc
+        passwd: abcrb1357
+
+
+#########################################################################################
+# Start of the clone_settings section. All the settings are done inside 1 field:
+# @param   range_id    The unique ID of the cyber range, which is used to differentiate
+#                      between cyber ranges created on the same host.
+#########################################################################################
+- clone_settings:
+
+  - range_id: 126
+    # hosts is for specifying a list of hosts that the cyber range is deployed on.
+    # @param    host_id           The ID of the host (as specified in the host_settings
+    #                             section located in the beginning of this file).
+    # @param    instance_number   The number of instances of the cyber range that are
+    #                             going to be deployed on the host.
+    # @param    guests            Specify a list of virtual machines which are cloned
+    #                             from the base images included in the guest_settings
+    #                             section.
+    # @param    topology          The network topology among virtual machines in the
+    #                             cyber range.
+    hosts:
+    - host_id: host_1
+      instance_number: 2
+      # guests is for specifying a list of virtual machines which are cloned from the base images
+      # specified in the guest_settings section. For each guest, it takes several parameters:
+      # @param   guest_id         The ID of the base image that the virtual machine
+      #                           is cloned from.
+      # @param   number           The number of the virtual machines that will be cloned from
+      #                           the base image.
+      # @param   forwarding_rules The forwarding rules for communication done between
+      #                           network segments. This field is optional, and it is only
+      #                           specified when the virtual machine plays the role of
+      #                           forwarding traffic in the network (such as a firewall machine,
+      #                           gateway machine, etc.).
+      # @param    entry_point     A flag which indicates that this guest will be the entry point
+      #                           of the cyber range. At least one guest in the cyber range will
+      #                           have this flag with "yes" value.
+      guests:
+      # Specify the virtual machines which are to be cloned from the "desktop" base image.
+      # No firewall rules are included for these virtual machines.
+      - guest_id: desktop
+        number: 1
+        entry_point: yes
+
+      # Specify the virtual machines which are to be cloned from the "webserver" base image.
+      # No firewall rules are included for these virtual machines.
+      - guest_id: webserver
+        number: 1
+
+      # Specify the virtual machines that are to be cloned from the "firewall" base image.
+      - guest_id: firewall
+        number: 1
+        forwarding_rules:
+        # These rules are for forwarding traffic in the network. They contain several parameters:
+        # @param    src      The source segment for the traffic. If there are multiple
+        #                    source segments, they are separated by the character ",".
+        # @param    dst      The destination segment of the traffic. Same "," separation
+        #                    rule is applied when multiple destinations are specified.
+        # @param    sport    The source port of the traffic.
+        # @param    dport    The destination port of the traffic.
+        - rule: src=office,external_servers dst=internal_servers.database dport=3306
+        - rule: src=office,external_servers dst=internal_servers.fileserver dport=139,445
+        - rule: src=office dst=external_servers dport=25,53
+
+      # topology is for the network topology among virtual machines in the cyber range.
+      # It has several parameters:
+      # @param    type      The type of the network in the cyber range (custom type, ring type,
+      #                     dumbbell type, etc.). At the current stage, only the custom type is
+      #                     supported.
+      # @param    networks  A list of network segments in the cyber range, including name of the
+      #                     segment, members, and gateway.
+      topology:
+      - type: custom
+        # The list of network segments in the cyber range.
+        # @param    name       Name of the network segment.
+        # @param    members    A list of members in the network segment. They are
+        #                      specified as <guest_id>.<network_interface> values.
+        # @param    gateway    A gateway for members in this segment to communicate
+        #                      with other segments.
+        networks:
+        # A network segment named office.
+        - name: office
+          members: desktop.eth0
+          gateway: firewall.eth0
+
+        # A network segment named servers.
+        - name: servers
+          members: webserver.eth0
+          gateway: firewall.eth1
