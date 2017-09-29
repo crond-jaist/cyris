@@ -674,16 +674,19 @@ class CloneSetting(object):
 
     def generateNetworkMembership(self, clone_subnw_list, guest_id):
         networks_dict = OrderedDict()
-        print "* DEBUG: cyris: Network info in cyber range of guest '{0}': ".format(guest_id)
+        if DEBUG:
+            print "* DEBUG: cyris: Network info in cyber range of guest '{0}': ".format(guest_id)
         for clone_subnw in clone_subnw_list:
-            print "* DEBUG: cyris:   Network name: ", clone_subnw.getName()
-            print "* DEBUG: cyris:   Node list: ", clone_subnw.getNodeList()
+            if DEBUG:
+                print "* DEBUG: cyris:   Network name: ", clone_subnw.getName()
+                print "* DEBUG: cyris:   Node list: ", clone_subnw.getNodeList()
             for node_interface in clone_subnw.getNodeList():
                 node_interface_list = node_interface.split(".")
                 if node_interface_list:
                     if node_interface_list[0] == guest_id:
                         networks_dict[node_interface_list[1]] = clone_subnw.getName()
-        print "* DEBUG: cyris: Generated networks dictionary: ", networks_dict
+        if DEBUG:
+            print "* DEBUG: cyris: Generated networks dictionary: ", networks_dict
         return networks_dict
 
 class Command(object):
