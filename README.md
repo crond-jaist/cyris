@@ -63,7 +63,9 @@ A typical sequence of operations is as follows:
 
 ### Recovery from errors
 
-In case you encounter errors due to mis-configurations, and the cleanup command above is insufficient to restore correct operation, you can also clean up the temporary files via a special cleanup script (two arguments are required):
+Ocasionally an error such as `No route to host` appears. We are currently investigating its exact cause, but for the moment you should just destroy the partially created cyber range and repeat the creation process.
+
+In case you encounter subsequent errors due to mis-configurations, and the range cleanup command above is insufficient to restore correct operation, you can also clean up the temporary files via a special cleanup script (two arguments are required):
 
   `$ ./destroy_all_cr.sh CYRIS_PATH CYBER_RANGE_PATH`
 
