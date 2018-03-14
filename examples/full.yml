@@ -62,7 +62,7 @@
   - id: desktop
     ip_addr: 192.168.122.50
     basevm_host: host_1
-    basevm_config_file: /home/cyuser/kvm/images-development/basevm_desktop_dev.xml
+    basevm_config_file: /home/cyuser/images/basevm_desktop.xml
     basevm_type: kvm
     tasks:
     # The add_account task is for adding a new account to the base image. It needs two
@@ -174,7 +174,6 @@
     - copy_content:
       - src: /home/cyuser/database/penetration_testing
         dst: /bin/cyberrange
-        dst: /home
       - src: /home/cyuser/database/flag.txt
         dst: /root
 
@@ -182,6 +181,7 @@
     # ruby, etc.), which have been copied to the cyber range in the copy_content tasks. 
     # This function needs three parameters:
     # @param    program        The absolute path of the location of the program.
+    # @param    args           Any arguments needed to run the program (optional).
     # @param    interpreter    The required shell/interpreter/compiler (python, bash,
     #                          ruby, gcc, etc.).
     # @param    execute_time   This parameter is optional, indicating the time that 
@@ -195,6 +195,7 @@
         interpreter: bash
       - program: /bin/cyberrange/database/penetration_testing/prepare.sh
         interpreter: bash
+        args: arguments
         execute_time: after_clone
 
     # The firewall_rules task is for specifying and setting up firewall rules. CyRIS will
@@ -213,13 +214,12 @@
     basevm_host: host_1
     basevm_config_file: /home/cyuser/images/basevm_webserver.xml
     basevm_type: kvm
-    basevm_name: basevm_webserver
     tasks:
     - add_account:
       - account: daniel
         passwd: JamesBond
 
-    - edit_account:
+    - modify_account:
       - account: root
         new_passwd: new-root-password
 
@@ -229,7 +229,7 @@
       - package_manager: yum
         name: php
 
-    - emulate_traffic_capture_files:
+    - emulate_traffic_capture_file:
       - format: pcap
         file_name: /home/traffic.pcap
         attack_type: ddos_attack
@@ -259,9 +259,8 @@
   - id: firewall
     ip_addr: 192.168.122.10
     basevm_host: host_1
-    basevm_config_file: /home/cyuser/images/basevm_gateway.xml
+    basevm_config_file: /home/cyuser/images/basevm_firewall.xml
     basevm_type: kvm
-    basevm_name: basevm_gateway
     tasks:
     - add_account:
       - account: robot.abc
@@ -298,8 +297,7 @@
       # @param   forwarding_rules The forwarding rules for communication done between
       #                           network segments. This field is optional, and it is only
       #                           specified when the virtual machine plays the role of
-      #                           forwarding traffic in the network (such as a firewall machine,
-      #                           gateway machine, etc.).
+      #                           forwarding traffic in the network, such as a firewall machine.
       # @param    entry_point     A flag which indicates that this guest will be the entry point
       #                           of the cyber range. At least one guest in the cyber range will
       #                           have this flag with "yes" value.
@@ -326,9 +324,7 @@
         #                    rule is applied when multiple destinations are specified.
         # @param    sport    The source port of the traffic.
         # @param    dport    The destination port of the traffic.
-        - rule: src=office,external_servers dst=internal_servers.database dport=3306
-        - rule: src=office,external_servers dst=internal_servers.fileserver dport=139,445
-        - rule: src=office dst=external_servers dport=25,53
+        - rule: src=office dst=servers dport=25,53
 
       # topology is for the network topology among virtual machines in the cyber range.
       # It has several parameters:

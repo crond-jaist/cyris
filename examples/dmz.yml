@@ -8,7 +8,7 @@
 - guest_settings:
   - id: firewall
     basevm_host: host_1
-    basevm_config_file: /home/cyuser/images/basevm_gateway.xml
+    basevm_config_file: /home/cyuser/images/basevm_firewall.xml
     basevm_type: kvm
     tasks:
     - add_account:
@@ -75,9 +75,6 @@
     - add_account:
       - account: daniel
         passwd: JamesBond
-    - modify_account:
-      - account: root
-        new_passwd: theroot
     - install_package:
       - package_manager: yum
         name: nmap
