@@ -75,7 +75,7 @@ echo "    <console type='pty'>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "      <target type='serial' port='0'/>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "    </console>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "    <input type='mouse' bus='ps2'/>" >> ${ABSPATH}images/${VM_ID}_config.xml;
-echo "    <graphics type='vnc' port='-1' autoport='yes'/>" >> ${ABSPATH}images/${VM_ID}_config.xml;
+echo "    <graphics type='vnc' port='-1' autoport='yes' listen='0.0.0.0' />" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "    <sound model='ich6'>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "      <address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x0'/>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "    </sound>" >> ${ABSPATH}images/${VM_ID}_config.xml;
