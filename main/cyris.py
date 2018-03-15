@@ -12,7 +12,7 @@ import yaml
 import sys
 from collections import defaultdict
 import socket
-from random import randint
+import random
 from datetime import datetime, timedelta
 import fcntl            # for atomic file writing
 import getopt
@@ -50,6 +50,7 @@ PSCP_CONCURRENCY = 50  # Maximum number of concurrent connections
 # Settings for check ssh function: total timeout and for one try
 CHECK_SSH_TIMEOUT_TOTAL = 300
 CHECK_SSH_TIMEOUT_ONCE = 5
+CHECK_SSH_CONNECTIVITY_INDICATOR = "Permission denied"
 
 # Master node's account.
 MSTNODE_ACCOUNT = ""
@@ -121,6 +122,7 @@ class CyberRangeCreation():
                 DESTROY_ON_ERROR = True;
             elif opt in ("-v", "--verbose"):
                 DEBUG = True
+                print "* DEBUG: cyris: Debug mode enabled."
     
         # Then with command-line arguments
         if len(args)<2:
@@ -414,7 +416,7 @@ class CyberRangeCreation():
                     clone_host_list.append(clone_host)
             self.clone_setting = CloneSetting(range_id, nw_type, clone_host_list)
 
-        # Set basevm_name for guests following the rule: basevm_name = {guest_id}{range_id}
+        # Set basevm_name for guests
         for guest in self.guests:
             basevm_name = "{0}_cr{1}_base".format(guest.getGuestId(), self.clone_setting.getRangeId())
             guest.setBasevmName(basevm_name)
@@ -688,17 +690,22 @@ class CyberRangeCreation():
                     used_port = element.split(":")[1] 
                     used_port_list.append(used_port)
 
+        if DEBUG: print("* DEBUG: cyris: clone_vm_commands: INITIAL: used_port_list={}".format(used_port_list))
+
         # Generate fresh ports for entry points
-        fresh_port_list = []
-        num = 0
-        while (num <= 50):
-            while True:
-                port = randint(60000, 65000)
-                if port not in used_port_list:
-                    fresh_port_list.append(port)
-                    used_port_list.append(port)
-                    num += 1
-                    break 
+        ## Generate a list with ports between a minimum and maximum value (both inclusive)
+        MIN_PORT_NO = 60000
+        MAX_PORT_NO = 65000
+        fresh_port_list = range(MIN_PORT_NO, MAX_PORT_NO+1)
+        if DEBUG: print("* DEBUG: cyris: clone_vm_commands: INITIAL: fresh_port_list={}".format(fresh_port_list))
+        ## Transform port lists to sets to "subtract" used_port_list values,
+        ## then transform the result back to a list
+        fresh_port_list=list(set(fresh_port_list) - set(used_port_list))
+        if DEBUG: print("* DEBUG: cyris: clone_vm_commands: FILTERED: fresh_port_list={}".format(fresh_port_list))
+        ## Shuffle port list, so that port numbers are used in a random order
+        ## (note that shuffling is done in place)
+        random.shuffle(fresh_port_list)
+        if DEBUG: print("* DEBUG: cyris: clone_vm_commands: SHUFFLED: fresh_port_list={}".format(fresh_port_list))
 
         # Set ports for entry points
         self.clone_setting.setCloneHostList(fresh_port_list)
@@ -719,47 +726,95 @@ class CyberRangeCreation():
         vm_clone.create_destruction_file()
 
     #########################################################################
-    # Check connection to virtual machines by ping command
-    # FIXME: Not used (instantiation/vm_clone/check_ping.py is used instead)
-    #def check_ping(self, addr):
-    #    command = "ping -c 1 " + addr
-    #    response = self.os_system(self.creation_log_file, command)
-    #    # then check the response
-    #    if response == 0:
-    #        pingstatus = 1
-    #    else:
-    #        pingstatus = 0
-    #    return pingstatus
+    # Check SSH connectivity for access via given command
+    def check_ssh_connectivity(self, check_command, if_addr):
 
-    #########################################################################
-    # Check connection to virtual machines by using ssh connection
-    def check_ssh(self, addr):
-        # Compute end time for timeout of operation
+        # Compute operation timeout
         crt_time = datetime.now()
         timeout_time = crt_time + timedelta(seconds=CHECK_SSH_TIMEOUT_TOTAL)
         if DEBUG:
-            print "* DEBUG: cyris: Initial time for ssh check:", crt_time
-            print "* DEBUG: cyris: Final timeout time for ssh check:", timeout_time
+            print "* DEBUG: cyris:       Initial time for SSH check:", crt_time
+            print "* DEBUG: cyris:       Timeout time for SSH check:", timeout_time
+
+        # Loop while current time is less than the timeout
         while datetime.now() < timeout_time:
-            if DEBUG:
-                print "* DEBUG: cyris: Current time for ssh check:", datetime.now()
-    	    try:
-                sock = socket.create_connection((addr, 22), CHECK_SSH_TIMEOUT_ONCE)
-                if DEBUG:
-                    print "* DEBUG: cyris: Connection to host %s port 22 successful." % (addr)
-                sock.close()
+
+            # Create a new process to execute command
+            proc = subprocess.Popen(check_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+            stdout,stderr = proc.communicate()
+
+            # Check whether CHECK_SSH_CONNECTIVITY_INDICATOR string can be found
+            if CHECK_SSH_CONNECTIVITY_INDICATOR not in stderr:
+                if DEBUG: print "* DEBUG: cyris:       Check SSH connectivity to {0} => FAILURE".format(if_addr)
+            else:
+                if DEBUG: print "* DEBUG: cyris:       Check SSH connectivity to {0} => SUCCESS".format(if_addr)
                 return
-            except socket.error as error:
-                if DEBUG:
-                    print "  Error on create_connection: %s" % error
 
         # This point is only reached on total timeout expiration or error
-        print "* ERROR: cyris: Cannot connect to base VM."
+        print "* ERROR: cyris: Cannot connect to VM."
         if DEBUG:
-            print "  Error on connect: %s" % error
+            print "  Error on connect: %s" % stderr
         print "  Check the log file for details: %s" % (self.creation_log_file)
         self.handle_error()
         quit(-1)
+
+    #########################################################################
+    # Check whether all base VMs can be accessed via SSH
+    def check_ssh_connectivity_to_basevms(self):
+        if DEBUG: print "* DEBUG: cyris: Checking SSH connectivity for base VMs..."
+
+        # Loop over all guests
+        for guest in self.guests:
+
+            if DEBUG: print "* DEBUG: cyris: - Checking base VM for guest '{0}' ({1})...".format(guest.getGuestId(), guest.getBasevmAddr())
+
+            # Get interface address for this guest from address list
+            if_addr = guest.getBasevmAddr()
+
+            # Build command for checking SSH connectivity
+            OPTIONS = "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PasswordAuthentication=no -o ConnectTimeout={0}".format(CHECK_SSH_TIMEOUT_ONCE)
+            check_command = "ssh {0} {1} ls".format(OPTIONS, if_addr)
+            if DEBUG: print "* DEBUG: cyris:       Command: {0}".format(check_command)
+
+            # Call function that does the actual check
+            self.check_ssh_connectivity(check_command, if_addr)
+
+    #########################################################################
+    # Check whether all cloned machines in the cyber range can be accessed via SSH
+    def check_ssh_connectivity_to_cr(self):
+        if DEBUG: print "* DEBUG: cyris: Checking SSH connectivity for cyber range..."
+
+        # Loop over all hosts
+        for host in self.clone_setting.getCloneHostList():
+
+            if DEBUG: print "* DEBUG: cyris: - Checking instances on host '{0}' ({1})...".format(host.getHostId(), host.getMgmtAddr())
+
+            # Loop over all instances on a host
+            for instance in host.getInstanceList():
+
+                if DEBUG: print "* DEBUG: cyris:   + Checking instance #{0}...".format(instance.getIndex())
+
+                # Loop over all cloned guests in an instance
+                for clone in instance.getCloneGuestList():
+
+                    if DEBUG: print "* DEBUG: cyris:     - Checking cloned guest '{0}'...".format(clone.getGuestId())
+
+                    # Check whether clone has NICs
+                    if clone.getNicAddrDict():
+
+                        # Get first interface address for this guest from address list
+                        if_addr = clone.getNicAddrDict().values()[0]
+
+                        # Build command for checking SSH connectivity
+                        OPTIONS = "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PasswordAuthentication=no -o ConnectTimeout={0}".format(CHECK_SSH_TIMEOUT_ONCE)
+                        check_command = "ssh {0} 'ssh {1} {2} ls'".format(host.getMgmtAddr(), OPTIONS, if_addr)
+                        #if DEBUG: print "* DEBUG: cyris:       Command: {0}".format(check_command)
+
+                        # Call function that does the actual check
+                        self.check_ssh_connectivity(check_command, if_addr)
+
+                    else:
+                        print "* WARNING: cyris: No NIC defined for cloned guest '{0}'.".format(clone.getGuestId())
 
     #########################################################################
     # Send email function
@@ -958,8 +1013,7 @@ class CyberRangeCreation():
             self.os_system(self.creation_log_file, command)
 
         print "* INFO: cyris: Check that the base VMs are up."
-        for guest in self.guests:
-            self.check_ssh(guest.getBasevmAddr())
+        self.check_ssh_connectivity_to_basevms()
 
         ######## SSH-copy-id and add default gw #########
         print "* INFO: cyris: Prepare the base VMs for setup."
@@ -1030,6 +1084,15 @@ class CyberRangeCreation():
         shutdown_command = self.shut_down_baseimg()
         self.os_system(self.creation_log_file, shutdown_command)
 
+        # Check whether shutdown completed for all base VMs before distributing images
+        if DEBUG: print "* DEBUG: cyris: Checking whether shutdown completed for all base VMs..."
+        for guest in self.guests:
+            if DEBUG: print "* DEBUG: cyris: - Checking guest '{0}' base VM...".format(guest.getGuestId())
+            while (subprocess.check_output("virsh list --all ", shell=True).find(guest.getBasevmName()) != -1):
+                if DEBUG: print "* DEBUG: cyris:   Base VM '{0}' is still running => SLEEP".format(guest.getBasevmName())
+                time.sleep(2)
+            if DEBUG: print "* DEBUG: cyris:   Base VM '{0}' was undefined => CONTINUE".format(guest.getBasevmName())
+
         ######## parallel distribute base images to hosts ###########
         print "* INFO: cyris: Distribute the base images for cloning."
         # Calculate distribute base images time
@@ -1073,15 +1136,12 @@ class CyberRangeCreation():
         
         ######## check if virtual machines are up #########
         print "* INFO: cyris: Wait for the cloned VMs to start."
-        # FIXME: Should check via ssh instead, and remove sleep!
-        time.sleep(20)
-        check_command = "python {0}{1}/vm_clone/check_ping.py {2};".format(ABS_PATH, INSTANTIATION_DIR, self.entry_points_file)
-        self.os_system(self.creation_log_file, "{0} \"{1}\"".format(parallel_ssh_command, check_command))
-        if DEBUG:
-            print "Virtual machines are up"
-        time.sleep(5)
+
+        self.check_ssh_connectivity_to_cr()
 
         print "* INFO: cyris: Perform post-cloning setup of the VMs."
+
+        print "* INFO: cyris: - Configure network settings"
         
         ######## set up forwarding rules for routing ########
         fw_command = "chmod +x {0}; {0};".format(self.setup_fwrule_file)
@@ -1106,6 +1166,8 @@ class CyberRangeCreation():
         self.os_system(self.creation_log_file, "{0} \"{1}\"".format(parallel_ssh_command, cea_command))
         if DEBUG:
             print "Entry point accounts are created"
+
+        print "* INFO: cyris: - Execute programs after cloning"
 
         ######### Install programs after cloning ##########
         # Install command.
@@ -1233,5 +1295,5 @@ class CyberRangeCreation():
         print "-------------------------------------------------------------------------"
         
 # Start the program
-a = CyberRangeCreation(sys.argv[1:])
-a.main()
+cyris = CyberRangeCreation(sys.argv[1:])
+cyris.main()

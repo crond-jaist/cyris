@@ -97,12 +97,18 @@ class VMClone(object):
                 if clone_host.getHostId() == host.getHostId():
                     account = host.getAccount()
                     mgmt_addr = host.getMgmtAddr()
-            # ssh connection
+
+            # Setup and create an SSH connection
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            # The command below causes a warning to be displayed => inform users that it's harmless
+            print "* NOTE: cyris: The warning below can be safely ignored (caused by use of paramiko library in 'clone_environment.py')."
             ssh.connect(mgmt_addr, username=account)
+
+            # Open an SFTP session on the SSH server
             sftp_client = ssh.open_sftp()
-            # Create bridges
+
+            # Create the bridges
             with sftp_client.open(self.create_bridges_file,"a+") as myfile:
                 for instance in clone_host.getInstanceList():
                     for bridge in instance.getBridgeList():
@@ -113,12 +119,16 @@ class VMClone(object):
                 # Wait for creating bridges get done
                 myfile.write("wait\n")
                 myfile.write("echo \" bridges are up\"")
-              
-            # Destruct bridges
+
+            # Destruct the bridges
             with sftp_client.open(self.destruction_file, "a+") as myfile:
                 for instance in clone_host.getInstanceList():
                     for bridge in instance.getBridgeList():
                         myfile.write("sudo ifdown br{0};\n".format(bridge.getId()))
+
+            # Close the SFTP and SSH sessions
+            sftp_client.close()
+            ssh.close()
 
     #########################################################################
     # Generate files for cloning vm phase

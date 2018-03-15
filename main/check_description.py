@@ -2,6 +2,7 @@
 
 import yaml
 import os
+import re
 
 from storyboard import Storyboard
 
@@ -61,149 +62,466 @@ def check_description(filename, abspath):
     guest_section = doc[1]
     clone_section = doc[2]
 
-    # Store all host ids that were defined in the host_settings section
+    for element in doc:
+        if type(element) is dict:
+            if Storyboard.HOST_SETTINGS in element.keys():
+                host_section = element
+            elif Storyboard.GUEST_SETTINGS in element.keys():
+                guest_section = element
+            elif Storyboard.CLONE_SETTINGS in element.keys():
+                clone_section = element
+            else:
+                raise_flag("Unknown section in description file: {0}".format(element))
+        else:
+            raise_flag("Unknown element in description file: {0}".format(element))
+
+    # Store all guest and host ids that were defined in the
+    # host_settings section, as well as forwarding rules
+    defined_guest_ids = []
     defined_host_ids = []
     defined_forwarding_rules = []
 
-    # Check the "host_settings" part of the description.
+    ###########################################################################
+    # Check the HOST_SETTINGS section
     if Storyboard.HOST_SETTINGS not in host_section.keys():
-        raise_flag("Tag 'host_settings' is missing.")
+        raise_flag("Section '{0}' is missing.".format(Storyboard.HOST_SETTINGS))
     else:
-        for i,h in enumerate(host_section[Storyboard.HOST_SETTINGS]):
+        #for index, host in enumerate(host_section[Storyboard.HOST_SETTINGS]):
+        for host in host_section[Storyboard.HOST_SETTINGS]:
             
-            host_id = "N/A"
+            host_id = Storyboard.NOT_AVAIL
+            host_keys = host.keys()
 
-            # Check syntax and keywords.
-            if Storyboard.ID not in h.keys():
-                raise_flag("Tag 'id' is missing for one of the hosts in 'host_settings' section.")
+            # ID tag
+            if Storyboard.ID not in host_keys:
+                raise_flag("Tag '{0}' is missing for one of the hosts in section '{1}'.".format(Storyboard.ID, Storyboard.HOST_SETTINGS))
             else:
-                host_id = h[Storyboard.ID]
+                host_id = host[Storyboard.ID]
                 if not host_id in defined_host_ids:
                     defined_host_ids.append(host_id)
                 else:
-                    raise_flag("Host with id {0} is duplicated in the 'host_settings' section.".format(host_id))
-            if Storyboard.MGMT_ADDR not in h.keys():
-                raise_flag("Tag 'mgmt_addr' is missing for host {0} in 'host_settings' section.".format(host_id))
-            if Storyboard.VIRBR_ADDR not in h.keys():
-                raise_flag("Tag 'virbr_addr' is missing for host {0} in 'host_settings' section.".format(host_id))
-            if Storyboard.ACCOUNT not in h.keys():
-                raise_flag("Tag 'account' is missing for host {0} in 'host_settings' section.".format(host_id))
-    
-    # Check the "guest_settings" part of the description.
-    if "guest_settings" not in guest_section.keys():
-        raise_flag("Tag 'guest_settings' is missing.")
-    else:
-        for i,g in enumerate(guest_section["guest_settings"]):
-            # Check syntax and keywords.
-            if "id" not in g.keys():
-                raise_flag("Tag 'id' is missing for one of the guests in 'guest_settings' section.")
-            if "basevm_config_file" not in g.keys():
-                raise_flag("Tag 'basevm_config_file' is missing for one of the guests in 'guest_settings' section.")
+                    raise_flag("Host with id '{0}' is duplicated in section '{1}'.".format(host_id, Storyboard.HOST_SETTINGS))
+                host_keys.remove(Storyboard.ID)
+
+            # MGMT_ADDR tag
+            if Storyboard.MGMT_ADDR not in host_keys:
+                raise_flag("Tag '{0}' is missing for host '{1}' in section '{2}' section.".format(Storyboard.MGMT_ADDR, host_id, Storyboard.HOST_SETTINGS))
             else:
-                config_file = g["basevm_config_file"]
+                host_keys.remove(Storyboard.MGMT_ADDR)
+
+            # VIRBR_ADDR tag
+            if Storyboard.VIRBR_ADDR not in host_keys:
+                raise_flag("Tag '{0}' is missing for host '{1}' in section '{2}'.".format(Storyboard.VIRBR_ADDR, host_id, Storyboard.HOST_SETTINGS))
+            else:
+                host_keys.remove(Storyboard.VIRBR_ADDR)
+
+            # ACCOUNT tag
+            if Storyboard.ACCOUNT not in host_keys:
+                raise_flag("Tag '{0}' is missing for host '{1}' in section '{2}.".format(Storyboard.ACCOUNT, host_id, Storyboard.HOST_SETTINGS))
+            else:
+                host_keys.remove(Storyboard.ACCOUNT)
+
+            # Check whether there are any (unknown) tags left in the list
+            if host_keys:
+                raise_flag("Unknown tag(s) for host '{0}' in section '{1}': {2}".format(host_id, Storyboard.HOST_SETTINGS, host_keys))
+
+
+    ###########################################################################
+    # Check the GUEST_SETTINGS section
+    if Storyboard.GUEST_SETTINGS not in guest_section.keys():
+        raise_flag("Section '{0}' is missing.".format(Storyboard.GUEST_SETTINGS))
+    else:
+        for guest in guest_section[Storyboard.GUEST_SETTINGS]:
+
+            guest_id = Storyboard.NOT_AVAIL
+            guest_keys = guest.keys()
+
+            # ID4GUEST tag
+            if Storyboard.ID4GUEST not in guest_keys:
+                raise_flag("Tag '{0}' is missing for one of the guests in section '{1}'.".format(Storyboard.ID4GUEST, Storyboard.GUEST_SETTINGS))
+            else:
+                guest_id = guest[Storyboard.ID4GUEST]
+                if not guest_id in defined_guest_ids:
+                    defined_guest_ids.append(guest_id)
+                else:
+                    raise_flag("Guest with id '{0}' is duplicated in section '{1}'.".format(guest_id, Storyboard.GUEST_SETTINGS))
+                guest_keys.remove(Storyboard.ID4GUEST)
+
+            # IP_ADDR tag (optional)
+            if Storyboard.IP_ADDR in guest_keys:
+                guest_keys.remove(Storyboard.IP_ADDR)
+
+            # BASEVM_HOST tag
+            if Storyboard.BASEVM_HOST not in guest_keys:
+                raise_flag("Tag '{0}' is missing for guest '{1}' in section '{2}'.".format(Storyboard.BASEVM_HOST, guest_id, Storyboard.GUEST_SETTINGS))
+            else:
+                guest_keys.remove(Storyboard.BASEVM_HOST)
+
+            # BASEVM_CONFIG_FILE tag
+            if Storyboard.BASEVM_CONFIG_FILE not in guest_keys:
+                raise_flag("Tag '{0}' is missing for guest '{1}' in section '{2}'.".format(Storyboard.BASEVM_CONFIG_FILE, guest_id, Storyboard.GUEST_SETTINGS))
+            else:
+                config_file = guest[Storyboard.BASEVM_CONFIG_FILE]
+                # By convention, that VM disk image has same name with the config file, excluding the extension
                 if ".xml" in config_file:
                     harddisk_file = config_file.replace(".xml", "")
                 if DEBUG:
                     print config_file
                     print harddisk_file
+                # Check whether the VM config file and disk image have valid names
                 if not os.path.exists(config_file):
-                    raise_flag("The config file of one of the guests in 'guest_settings' section doesn't exist.")
+                    raise_flag("Tag '{0}' for guest '{1}' in section '{2}' references a non-existing VM configuration file: {3}".format(Storyboard.BASEVM_CONFIG_FILE, guest_id, Storyboard.GUEST_SETTINGS, config_file))
                 if not os.path.exists(harddisk_file):
-                    raise_flag("The hard disk file of one of the guests in 'guest_settings' section doesn't exist.")
+                    raise_flag("Tag '{0}' for guest '{1}' in section '{2}' implies a non-existing VM disk image: {3}".format(Storyboard.BASEVM_CONFIG_FILE, guest_id, Storyboard.GUEST_SETTINGS, harddisk_file))
 
-            if "basevm_type" not in g.keys():
-                raise_flag("Tag 'basevm_type' is missing for on of the guests in 'guest_settings' section.")
-            if "tasks" in g.keys():
-                for task in g["tasks"]:
-                    if "add_account" in task.keys():
-                        for a in task["add_account"]:
-                            if "account" not in a.keys():
-                                raise_flag("Tag 'account' is missing for task 'add_account' in one of the guests in 'guest_settings' - 'tasks' section.")
-                            if "passwd" not in a.keys():
-                                raise_flag("Tag 'passwd' is missing for task 'add_account' in one of the guests in 'guest_settings' - 'tasks' section.")
-                    if "modify_account" in task.keys():
-                        for a in task["modify_account"]:
-                            if "account" not in a.keys():
-                                raise_flag("Tag 'account' is missing for task 'modify_account' in one of the guests in 'guest_settings' - 'tasks' section.")
-                            if "new_passwd" not in a.keys() and "new_account" not in a.keys():
-                                raise_flag("Either tag 'new_account' or tag 'new_passwd' is missing for task 'modify_account' in one of the guests in 'guest_settings' - 'tasks' section.")
-                    if "install_package" in task.keys():
-                        for a in task["install_package"]:
-                            #if "package_manager" not in a.keys():
-                            #    raise_flag("Tag 'package_manager' is missing for task 'install_package' in one of the guests in 'guest_settings' - 'tasks' section.")
-                            if "name" not in a.keys():
-                                raise_flag("Tag 'name' is missing for task 'install_package' in one of the guests in 'guest_settings' - 'tasks' section.")
-                    if "emulate_attack" in task.keys():
-                        for a in task["emulate_attack"]:
-                            if "attack_type" not in a.keys():
-                                raise_flag("Tag 'attack_type' is missing for task 'emulate_attack' in one of the guests in 'guest_settings' - 'tasks' section.")
-                            if "target_account" not in a.keys():
-                                raise_flag("Tag 'target_account' is missing for task 'emulate_attack' in one of the guests in 'guest_settings' - 'tasks' section.")
-                            if "attempt_number" not in a.keys():
-                                raise_flag("Tag 'attempt_number' is missing for task 'emulate_attack' in one of the guests in 'guest_settings' - 'tasks' section.")
-                    if "emulate_traffic_capture_file" in task.keys():
-                        for a in task["emulate_traffic_capture_file"]:
-                            if "format" not in a.keys():
-                                raise_flag("Tag 'format' is missing for task 'emulate_traffic_capture_file' in one of the guests in 'guest_settings' - 'tasks' section.")
-                            if "file_name" not in a.keys():
-                                raise_flag("Tag 'file_name' is missing for task 'emulate_traffic_capture_file' in one of the guests in 'guest_settings' - 'tasks' section.")
-                            if "attack_type" not in a.keys():
-                                raise_flag("Tag 'attack_type' is missing for task 'emulate_traffic_capture_file' in one of the guests in 'guest_settings' - 'tasks' section.")
-                            else:
-                                if "ssh" in a["attack_type"]:
-                                    if "attack_source" not in a.keys():
-                                        raise_flag("Tag 'attack_source' is missing for task ssh_attack in 'emulate_traffic_capture_file' in one of the guests in 'guest_settings' - 'tasks' section.")
-                            if "noise_level" not in a.keys():
-                                raise_flag("Tag 'noise_level' is missing for task 'emulate_traffic_capture_file' in one of the guests in 'guest_settings' - 'tasks' section.")
-                    if "emulate_malware" in task.keys():
-                        for a in task["emulate_malware"]:
-                            if "name" not in a.keys():
-                                raise_flag("Tag 'name' is missing for task 'emulate_malware' in one of the guests in 'guest_settings' - 'tasks' section.")
-                            if "mode" not in a.keys():
-                                raise_flag("Tag 'mode' is missing for task 'emulate_malware' in one of the guests in 'guest_settings' - 'tasks' section.")
-                            else:
-                                if "calculation" in a["mode"]:
-                                    if "cpu_utilization" not in a.keys():
-                                        raise_flag("Tag 'cpu_utilization' is missing for running dummy_calculation mode in task 'emulate_malware' in one of the guests in 'guest_settings' - 'tasks' section.")
-                                if "listening" in a["mode"]:
-                                    if "port" not in a.keys():
-                                        raise_flag("Tag 'port' is missing for running port_listening mode in task 'emulate_malware' in one of the guests in 'guest_settings' - 'tasks' section.")
-                    if "copy_content" in task.keys():
-                        for a in task["copy_content"]:
-                            if "src" not in a.keys():
-                                raise_flag("Tag 'src' is missing for task 'copy_content' in one of the guests in 'guest_settings' - 'tasks' section.")
-                            if "dst" not in a.keys():
-                                raise_flag("Tag 'dst' is missing for task 'copy_content' in one of the guests in 'guest_settings' - 'tasks' section.")
-                    if "execute_program" in task.keys():
-                        for a in task["execute_program"]:
-                            if "program" not in a.keys():
-                                raise_flag("Tag 'program' is missing for task 'execute_program' in one of the guests in 'guest_settings' - 'tasks' section.")
-                            if "interpreter" not in a.keys():
-                                raise_flag("Tag 'interpreter' is missing for task 'execute_program' in one of the guests in 'guest_settings' - 'tasks' section.")
-                    if "firewall_rules" in task.keys():
-                        for a in task["firewall_rules"]:
-                            if "rule" not in a.keys():
-                                raise_flag("Tag 'rule' is missing for task 'firewall_rules' in one of the guests in 'guest_settings' - 'tasks' section.")
+                guest_keys.remove(Storyboard.BASEVM_CONFIG_FILE)
 
-    # Check the "clone_settings" part of the description.
+            # BASEVM_TYPE tag
+            if Storyboard.BASEVM_TYPE not in guest_keys:
+                raise_flag("Tag '{0}' is missing for guest '{1}' in section '{2}'.".format(Storyboard.BASEVM_TYPE, guest_id, Storyboard.GUEST_SETTINGS))
+            else:
+                guest_keys.remove(Storyboard.BASEVM_TYPE)
+
+            # TASKS tag
+            if Storyboard.TASKS in guest_keys:
+                for task in guest[Storyboard.TASKS]:
+
+                    task_keys = task.keys()
+
+                    # ADD_ACCOUNT tag
+                    if Storyboard.ADD_ACCOUNT in task_keys:
+                        for account in task[Storyboard.ADD_ACCOUNT]:
+
+                            account_keys = account.keys()
+
+                            # ACCOUNT tag
+                            if Storyboard.ACCOUNT not in account_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.ACCOUNT, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.ADD_ACCOUNT, guest_id))
+                            else:
+                                account_keys.remove(Storyboard.ACCOUNT)
+
+                            # PASSWD tag
+                            if Storyboard.PASSWD not in account_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.PASSWD, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.ADD_ACCOUNT, guest_id))
+                            else:
+                                account_keys.remove(Storyboard.PASSWD)
+
+                            # FULL_NAME tag (optional)
+                            if Storyboard.FULL_NAME in account_keys:
+                                account_keys.remove(Storyboard.FULL_NAME)
+
+                            # Check whether there are any (unknown) tags left in the list
+                            if account_keys:
+                                raise_flag("Unknown tag(s) in section '{0}', subsection '{1}' for task '{2}' of guest '{3}': {4}".format(Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.ADD_ACCOUNT, guest_id, account_keys))
+
+                        task_keys.remove(Storyboard.ADD_ACCOUNT)
+
+                    # MODIFY_ACCOUNT tag
+                    if Storyboard.MODIFY_ACCOUNT in task_keys:
+                        for account in task[Storyboard.MODIFY_ACCOUNT]:
+
+                            account_keys = account.keys()
+
+                            # ACCOUNT tag
+                            if Storyboard.ACCOUNT not in account_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.ACCOUNT, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.MODIFY_ACCOUNT, guest_id))
+                            else:
+                                account_keys.remove(Storyboard.ACCOUNT)
+
+                            # NEW_ACCOUNT and/or NEW_PASSWD tags
+                            new_tag_present = False
+                            if Storyboard.NEW_ACCOUNT in account_keys:
+                                new_tag_present = True
+                                account_keys.remove(Storyboard.NEW_ACCOUNT)
+                            if Storyboard.NEW_PASSWD in account_keys:
+                                new_tag_present = True
+                                account_keys.remove(Storyboard.NEW_PASSWD)
+                            if not new_tag_present:
+                                raise_flag("Neither tag '{0}' nor '{1}' are present in section '{2}', subsection '{3}' for task '{4}' of guests '{5}'.".format(Storyboard.NEW_ACCOUNT, Storyboard.NEW_PASSWD, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.MODIFY_ACCOUNT, guest_id))
+
+                            # Check whether there are any (unknown) tags left in the list
+                            if account_keys:
+                                raise_flag("Unknown tag(s) in section '{0}', subsection '{1}' for task '{2}' of guest '{3}': {4}".format(Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.MODIFY_ACCOUNT, guest_id, account_keys))
+
+                        task_keys.remove(Storyboard.MODIFY_ACCOUNT)
+
+                    # INSTALL_PACKAGE tag
+                    if Storyboard.INSTALL_PACKAGE in task_keys:
+                        for package in task[Storyboard.INSTALL_PACKAGE]:
+
+                            package_keys = package.keys()
+
+                            # PACKAGE_MANAGER tag (optional)
+                            if Storyboard.PACKAGE_MANAGER in package_keys:
+                                package_keys.remove(Storyboard.PACKAGE_MANAGER)
+
+                            # NAME4PACKAGE tag
+                            if Storyboard.NAME4PACKAGE not in package_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.NAME4PACKAGE, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.INSTALL_PACKAGE, guest_id))
+                            else:
+                                package_keys.remove(Storyboard.NAME4PACKAGE)
+
+                            # VERSION tag (optional)
+                            if Storyboard.VERSION in package_keys:
+                                package_keys.remove(Storyboard.VERSION)
+
+                            # Check whether there are any (unknown) tags left in the list
+                            if package_keys:
+                                raise_flag("Unknown tag(s) in section '{0}', subsection '{1}' for task '{2}' of guest '{3}': {4}".format(Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.INSTALL_PACKAGE, guest_id, package_keys))
+
+                        task_keys.remove(Storyboard.INSTALL_PACKAGE)
+
+                    # EMULATE_ATTACK tag
+                    if Storyboard.EMULATE_ATTACK in task_keys:
+                        for attack in task[Storyboard.EMULATE_ATTACK]:
+
+                            attack_keys = attack.keys()
+
+                            # ATTACK_TYPE tag
+                            if Storyboard.ATTACK_TYPE not in attack_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.ATTACK_TYPE, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EMULATE_ATTACK, guest_id))
+                            else:
+                                attack_keys.remove(Storyboard.ATTACK_TYPE)
+
+                            # TARGET_ACCOUNT type
+                            if Storyboard.TARGET_ACCOUNT not in attack_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.TARGET_ACCOUNT, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EMULATE_ATTACK, guest_id))
+                            else:
+                                attack_keys.remove(Storyboard.TARGET_ACCOUNT)
+
+                            # ATTEMPT_NUMBER tag
+                            if Storyboard.ATTEMPT_NUMBER not in attack_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.ATTEMPT_NUMBER, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EMULATE_ATTACK, guest_id))
+                            else:
+                                attack_keys.remove(Storyboard.ATTEMPT_NUMBER)
+
+                            # ATTACK_TIME tag (optional)
+                            if Storyboard.ATTACK_TIME in attack_keys:
+                                # Check parameter format is correct
+                                attack_time = attack[Storyboard.ATTACK_TIME]
+                                time_pattern1 = re.compile("[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]")
+                                time_pattern2 = re.compile("[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]")
+                                if not time_pattern1.match(str(attack_time)) and not time_pattern2.match(str(attack_time)):
+                                    raise_flag("Format for value of tag '{0}' in section '{1}', subsection '{2}' for task '{3}' of guest '{4}' doesn't match pattern YYYY[-]MM[-]DD: {5}".format(Storyboard.ATTACK_TIME, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EMULATE_ATTACK, guest_id, attack_time))
+                                attack_keys.remove(Storyboard.ATTACK_TIME)
+
+                            # Check whether there are any (unknown) tags left in the list
+                            if attack_keys:
+                                raise_flag("Unknown tag(s) in section '{0}', subsection '{1}' for task '{2}' of guest '{3}': {4}".format(Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EMULATE_ATTACK, guest_id, attack_keys))
+
+                        task_keys.remove(Storyboard.EMULATE_ATTACK)
+
+                    # EMULATE_TRAFFIC_CAPTURE_FILE tag
+                    if Storyboard.EMULATE_TRAFFIC_CAPTURE_FILE in task_keys:
+                        for capture in task[Storyboard.EMULATE_TRAFFIC_CAPTURE_FILE]:
+
+                            attack_type = Storyboard.NOT_AVAIL
+                            capture_keys = capture.keys()
+
+                            # FORMAT tag
+                            if Storyboard.FORMAT not in capture_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.FORMAT, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EMULATE_TRAFFIC_CAPTURE_FILE, guest_id))
+                            else:
+                                capture_keys.remove(Storyboard.FORMAT)
+
+                            # FILE_NAME tag
+                            if Storyboard.FILE_NAME not in capture_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.FILE_NAME, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EMULATE_TRAFFIC_CAPTURE_FILE, guest_id))
+                            else:
+                                capture_keys.remove(Storyboard.FILE_NAME)
+
+                            # ATTACK_TYPE tag
+                            if Storyboard.ATTACK_TYPE not in capture_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.ATTACK_TYPE, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EMULATE_TRAFFIC_CAPTURE_FILE, guest_id))
+                            else:
+                                attack_type = capture[Storyboard.ATTACK_TYPE]
+                                capture_keys.remove(Storyboard.ATTACK_TYPE)
+
+                            # ATTACK_SOURCE tag
+                            if Storyboard.ATTACK_SOURCE not in capture_keys:
+                                if attack_type == Storyboard.SSH_ATTACK:
+                                    raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}' (attack type '{5}').".format(Storyboard.ATTACK_SOURCE, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EMULATE_TRAFFIC_CAPTURE_FILE, guest_id, attack_type))
+                                else:
+                                    # Nothing to do, since this tag is only required for the above attack
+                                    pass
+                            else:
+                                capture_keys.remove(Storyboard.ATTACK_SOURCE)
+
+                            # NOISE_LEVEL tag
+                            if Storyboard.NOISE_LEVEL not in capture_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.NOISE_LEVEL, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EMULATE_TRAFFIC_CAPTURE_FILE, guest_id))
+                            else:
+                                capture_keys.remove(Storyboard.NOISE_LEVEL)
+
+                            # Check whether there are any (unknown) tags left in the list
+                            if capture_keys:
+                                raise_flag("Unknown tag(s) in section '{0}', subsection '{1}' for task '{2}' of guest '{3}': {4}".format(Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EMULATE_TRAFFIC_CAPTURE_FILE, guest_id, capture_keys))
+
+                        task_keys.remove(Storyboard.EMULATE_TRAFFIC_CAPTURE_FILE)
+
+                    # EMULATE_MALWARE tag
+                    if Storyboard.EMULATE_MALWARE in task_keys:
+                        for malware in task[Storyboard.EMULATE_MALWARE]:
+
+                            malware_mode = Storyboard.NOT_AVAIL
+                            malware_keys = malware.keys()
+
+                            # NAME4MALWARE tag
+                            if Storyboard.NAME4MALWARE not in malware_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.NAME4MALWARE, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EMULATE_MALWARE, guest_id))
+                            else:
+                                malware_keys.remove(Storyboard.NAME4MALWARE)
+
+                            # MODE tag
+                            if Storyboard.MODE not in malware_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.MODE, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EMULATE_MALWARE, guest_id))
+                            else:
+                                malware_mode = malware[Storyboard.MODE]
+                                malware_keys.remove(Storyboard.MODE)
+
+                            # CPU_UTILIZATION tag
+                            if Storyboard.CPU_UTILIZATION not in malware_keys:
+                                if malware_mode == Storyboard.DUMMY_CALCULATION:
+                                    raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}' (mode '{5}').".format(Storyboard.CPU_UTILIZATION, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EMULATE_MALWARE, guest_id, malware_mode))
+                                else:
+                                    pass
+                            else:
+                                malware_keys.remove(Storyboard.CPU_UTILIZATION)
+
+                            # PORT tag
+                            if Storyboard.PORT not in malware_keys:
+                                if malware_mode == Storyboard.PORT_LISTENING:
+                                    raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}' (mode '{5}').".format(Storyboard.PORT, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EMULATE_MALWARE, guest_id, malware_mode))
+                                else:
+                                    pass
+                            else:
+                                malware_keys.remove(Storyboard.PORT)
+
+                            # Check whether there are any (unknown) tags left in the list
+                            if malware_keys:
+                                raise_flag("Unknown tag(s) in section '{0}', subsection '{1}' for task '{2}' of guest '{3}': {4}".format(Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EMULATE_MALWARE, guest_id, malware_keys))
+
+                        task_keys.remove(Storyboard.EMULATE_MALWARE)
+
+                    # COPY_CONTENT tag
+                    if Storyboard.COPY_CONTENT in task_keys:
+                        for content in task[Storyboard.COPY_CONTENT]:
+
+                            content_keys = content.keys()
+
+                            # SRC tag
+                            if Storyboard.SRC not in content_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.SRC, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.COPY_CONTENT, guest_id))
+                            else:
+                                content_keys.remove(Storyboard.SRC)
+
+                            # DST tag
+                            if Storyboard.DST not in content_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.DST, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.COPY_CONTENT, guest_id))
+                            else:
+                                content_keys.remove(Storyboard.DST)
+
+                            # Check whether there are any (unknown) tags left in the list
+                            if content_keys:
+                                raise_flag("Unknown tag(s) in section '{0}', subsection '{1}' for task '{2}' of guest '{3}': {4}".format(Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.COPY_CONTENT, guest_id, content_keys))
+
+                        task_keys.remove(Storyboard.COPY_CONTENT)
+
+                    # EXECUTE_PROGRAM tag
+                    if Storyboard.EXECUTE_PROGRAM in task_keys:
+                        for program in task[Storyboard.EXECUTE_PROGRAM]:
+
+                            program_keys = program.keys()
+
+                            # PROGRAM tag
+                            if Storyboard.PROGRAM not in program_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.PROGRAM, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EXECUTE_PROGRAM, guest_id))
+                            else:
+                                program_keys.remove(Storyboard.PROGRAM)
+
+                            # ARGS tag (optional)
+                            if Storyboard.ARGS in program_keys:
+                                program_keys.remove(Storyboard.ARGS)
+
+                            # INTERPRETER tag
+                            if Storyboard.INTERPRETER not in program_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.INTERPRETER, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EXECUTE_PROGRAM, guest_id))
+                            else:
+                                program_keys.remove(Storyboard.INTERPRETER)
+
+                            # EXECUTE_TIME tag (optional)
+                            if Storyboard.EXECUTE_TIME in program_keys:
+                                program_keys.remove(Storyboard.EXECUTE_TIME)
+
+                            # Check whether there are any (unknown) tags left in the list
+                            if program_keys:
+                                raise_flag("Unknown tag(s) in section '{0}', subsection '{1}' for task '{2}' of guest '{3}': {4}".format(Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EXECUTE_PROGRAM, guest_id, program_keys))
+
+                        task_keys.remove(Storyboard.EXECUTE_PROGRAM)
+
+                    # FIREWALL_RULES tag
+                    if Storyboard.FIREWALL_RULES in task_keys:
+                        for rule in task[Storyboard.FIREWALL_RULES]:
+
+                            rule_keys = rule.keys()
+
+                            # RULE tag
+                            if Storyboard.RULE not in rule_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.RULE, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.FIREWALL_RULES, guest_id))
+                            else:
+                                rule_keys.remove(Storyboard.RULE)
+
+                            # Check whether there are any (unknown) tags left in the list
+                            if program_keys:
+                                raise_flag("Unknown tag(s) in section '{0}', subsection '{1}' for task '{2}' of guest '{3}': {4}".format(Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.FIREWALL_RULES, guest_id, rule_keys))
+
+                        task_keys.remove(Storyboard.FIREWALL_RULES)
+
+                    # Check whether there are any (unknown) tags left in the list
+                    if task_keys:
+                        raise_flag("Unknown tag in section '{0}', subsection '{1}': {2}".format(Storyboard.GUEST_SETTINGS, Storyboard.TASKS, task_keys))
+
+                guest_keys.remove(Storyboard.TASKS)
+
+            # Check whether there are any (unknown) tags left in the list
+            if guest_keys:
+                raise_flag("Unknown tag(s) in section '{0}': {1}".format(Storyboard.GUEST_SETTINGS, guest_keys))
+
+
+    ###########################################################################
+    # Check the CLONE_SETTINGS section
     if Storyboard.CLONE_SETTINGS not in clone_section.keys():
-        raise_flag("Tag 'clone_settings' is missing.")
+        raise_flag("Section '{0}' is missing.".format(Storyboard.CLONE_SETTINGS))
     else:
+
+        # Check syntax and keywords
+        # Only one clone entry is supported in CLONE_SETTINGS, so we just get the first element
+        # TODO: Print error if more entries are found
         clone = clone_section[Storyboard.CLONE_SETTINGS][0]
-        # Check syntax and keywords.
-        if Storyboard.RANGE_ID not in clone.keys():
-            raise_flag("Tag 'range_id' is missing in 'clone_settings' section.")
+        clone_keys = clone.keys()
+
+        # RANGE_ID tag
+        if Storyboard.RANGE_ID not in clone_keys:
+            raise_flag("Tag '{0}' is missing in section '{1}'.".format(Storyboard.RANGE_ID, Storyboard.CLONE_SETTINGS))
         else:
             range_id = int(clone[Storyboard.RANGE_ID])
             cr_id_list = get_existed_cr_id_list(abspath)
             if range_id in cr_id_list:
-                raise_flag("Range with id {0} already exists. Please choose another id.".format(range_id))
-        if Storyboard.HOSTS not in clone.keys():
-            raise_flag("Tag 'hosts' is missing in 'clone_settings' section.")
+                raise_flag("Range with id '{0}' already exists. Please choose another id.".format(range_id))
+            clone_keys.remove(Storyboard.RANGE_ID)
+
+        # HOSTS tag
+        if Storyboard.HOSTS not in clone_keys:
+            raise_flag("Tag '{0}' is missing in section '{1}'.".format(Storyboard.HOSTS, Storyboard.CLONE_SETTINGS))
         else:
             for host in clone[Storyboard.HOSTS]:
-                if Storyboard.HOST_ID not in host.keys():
-                    raise_flag("Tag 'host_id' is missing for tag 'hosts', 'clone_settings' section.")
+
+                host_id = Storyboard.NOT_AVAIL
+                host_keys = host.keys()
+
+                # HOST_ID tag
+                if Storyboard.HOST_ID not in host_keys:
+                    raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}'.".format(Storyboard.HOST_ID, Storyboard.CLONE_SETTINGS, Storyboard.HOSTS))
                 else:
                     # Check whether the host id was already defined in the host_settings section
                     host_id = host[Storyboard.HOST_ID]
@@ -213,59 +531,136 @@ def check_description(filename, abspath):
                     for host_id_item in host_id_list:
                         # Check host id existence
                         if host_id_item not in defined_host_ids:
-                            raise_flag("Host with id \"{0}\" in the 'clone_settings' - 'hosts' section not defined in the 'host_settings' section.".format(host_id_item))
-                if Storyboard.INSTANCE_NUMBER not in host.keys():
-                    raise_flag("Tag 'instance_number' is missing for tag 'hosts', 'clone_settings' section.")
-                if Storyboard.GUESTS not in host.keys():
-                    raise_flag("Tag 'guests' is missing for tag 'hosts', 'clone_settings' section.")
+                            raise_flag("Host with id '{0}' mentioned in section '{1}', subsection '{2}' was not defined in the section '{3}'.".format(host_id_item, Storyboard.CLONE_SETTINGS, Storyboard.HOSTS, Storyboard.HOST_SETTINGS))
+                    host_keys.remove(Storyboard.HOST_ID)
+
+                # INSTANCE_NUMBER tag
+                if Storyboard.INSTANCE_NUMBER not in host_keys:
+                    raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}'.".format(Storyboard.INSTANCE_NUMBER, Storyboard.CLONE_SETTINGS, Storyboard.HOSTS))
+                else:
+                    host_keys.remove(Storyboard.INSTANCE_NUMBER)
+
+                # GUESTS tag
+                if Storyboard.GUESTS not in host_keys:
+                    raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}'.".format(Storyboard.GUESTS, Storyboard.CLONE_SETTINGS, Storyboard.HOSTS))
                 else:
                     entry_point_count = 0
                     for guest in host[Storyboard.GUESTS]:
-                        if Storyboard.GUEST_ID not in guest.keys():
-                            raise_flag("Tag 'guest_id' is missing for tag 'guests', 'clone_settings' - 'hosts' section.")
-                        if Storyboard.NUMBER not in guest.keys():
-                            raise_flag("Tag 'number' is missing for tag 'guests', 'clone_settings' - 'hosts' section.")
-                        if Storyboard.ENTRY_POINT in guest.keys():
+                        hosts_guest_keys = guest.keys()
+
+                        # GUEST_ID tag
+                        if Storyboard.GUEST_ID not in hosts_guest_keys:
+                            raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for subsection '{3}' of host '{4}'.".format(Storyboard.GUEST_ID, Storyboard.CLONE_SETTINGS, Storyboard.HOSTS, Storyboard.GUESTS, host_id))
+                        else:
+                            guest_id = guest[Storyboard.GUEST_ID]
+                            if guest_id not in defined_guest_ids:
+                                raise_flag("Guest with id '{0}' mentioned in section '{1}', subsection '{2}' was not defined in the section '{3}'.".format(guest_id, Storyboard.CLONE_SETTINGS, Storyboard.GUESTS, Storyboard.GUEST_SETTINGS))
+                            hosts_guest_keys.remove(Storyboard.GUEST_ID)
+
+                        # NUMBER tag
+                        # TODO: Add guest_id to messages
+                        if Storyboard.NUMBER not in hosts_guest_keys:
+                            raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for subsection '{3}' of host '{4}'.".format(Storyboard.NUMBER, Storyboard.CLONE_SETTINGS, Storyboard.HOSTS, Storyboard.GUESTS, host_id))
+                        else:
+                            hosts_guest_keys.remove(Storyboard.NUMBER)
+
+                        # ENTRY_POINT tag
+                        if Storyboard.ENTRY_POINT in hosts_guest_keys:
                             entry_point_count += 1
-                        if Storyboard.FORWARDING_RULES in guest.keys():
+                            hosts_guest_keys.remove(Storyboard.ENTRY_POINT)
+
+                        # FORWARDING_RULES tag
+                        if Storyboard.FORWARDING_RULES in hosts_guest_keys:
                             defined_forwarding_rules = []
                             for rule_set in guest[Storyboard.FORWARDING_RULES]:
                                 if Storyboard.RULE not in rule_set.keys():
-                                    raise_flag("Tag 'rule' is missing for task 'forwarding_rules' in one of the guests in 'clone_settings' - 'guests' section.")
+                                    raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for subsection '{3}', subsubsection '{4}' of host '{5}'.".format(Storyboard.RULE, Storyboard.CLONE_SETTINGS, Storyboard.HOSTS, Storyboard.GUESTS, Storyboard.FORWARDING_RULES, host_id))
                                 else:
                                     defined_forwarding_rules.append(rule_set[Storyboard.RULE])
+                            hosts_guest_keys.remove(Storyboard.FORWARDING_RULES)
+
+                        # Check whether there are any (unknown) tags left in the list
+                        if hosts_guest_keys:
+                            raise_flag("Unknown tag(s) in section '{0}', subsection '{1}', for subsection '{2}' of host '{3}': {4}".format(Storyboard.CLONE_SETTINGS, Storyboard.HOSTS, Storyboard.GUESTS, host_id, host_keys))
 
                     # TODO: How to check this in case multiple hosts are used?!
                     if entry_point_count == 0:
-                        raise_flag("Tag 'entry_point' is missing for tag 'guests', 'clone_settings' - 'hosts' section.")
+                        raise_flag("Tag '{0}' doesn't appear for any guest in section '{1}', subsection '{2}' for subsection '{3}' of host '{4}'.".format(Storyboard.ENTRY_POINT, Storyboard.CLONE_SETTINGS, Storyboard.HOSTS, Storyboard.GUESTS, host_id))
                     if entry_point_count > 1:
-                        raise_flag("Tag 'entry_point' appears more than once for tag 'guests', 'clone_settings' - 'hosts' section.")
+                        raise_flag("Tag '{0}' appears for more than one guest in section '{1}', subsection '{2}' for subsection '{3}' of host '{4}'.".format(Storyboard.ENTRY_POINT, Storyboard.CLONE_SETTINGS, Storyboard.HOSTS, Storyboard.GUESTS, host_id))
 
-                if Storyboard.TOPOLOGY not in host.keys():
-                    raise_flag("Tag 'topology' is missing for tag 'hosts', 'clone_settings' section.")
+                    host_keys.remove(Storyboard.GUESTS)
+
+                # TOPOLOGY tag
+                if Storyboard.TOPOLOGY not in host_keys:
+                    raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for subsection '{3}' of host '{4}'.".format(Storyboard.TOPOLOGY, Storyboard.CLONE_SETTINGS, Storyboard.HOSTS, Storyboard.GUESTS, host_id))
                 else:
                     topology = host[Storyboard.TOPOLOGY][0]
-                    if Storyboard.TYPE not in topology.keys():
-                        raise_flag("Tag 'type' is missing for tag 'topology', 'clone_settings' - 'hosts' section.")
-                    if Storyboard.NETWORKS not in topology.keys():
-                        raise_flag("Tag 'networks' is missing for tag 'topology', 'clone_settings' - 'hosts' section.")
+                    topology_keys = topology.keys()
+
+                    # TYPE tag
+                    if Storyboard.TYPE not in topology_keys:
+                        raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for subsection '{3}' of host '{4}'.".format(Storyboard.TYPE, Storyboard.CLONE_SETTINGS, Storyboard.HOSTS, Storyboard.TOPOLOGY, host_id))
+                    else:
+                        topology_keys.remove(Storyboard.TYPE)
+
+                    # NETWORKS tag
+                    if Storyboard.NETWORKS not in topology_keys:
+                        raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for subsection '{3}' of host '{4}'.".format(Storyboard.NETWORKS, Storyboard.CLONE_SETTINGS, Storyboard.HOSTS, Storyboard.TOPOLOGY, host_id))
                     else:
                         # Process each network definition, and check whether the forwarding rules specified previously
                         # contain any undefined networks
                         nw_set = get_network_set(defined_forwarding_rules)
                         for network in topology[Storyboard.NETWORKS]:
-                            if Storyboard.NAME not in network.keys():
-                                raise_flag("Tag 'name' is missing for tag 'network', 'topology' - 'clone_settings' - 'hosts' section.")
+
+                            nw_name = Storyboard.NOT_AVAIL
+                            network_keys = network.keys()
+
+                            # NAME tag
+                            if Storyboard.NAME not in network_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for subsection '{3}', subsubsection '{4}' of host '{5}'.".format(Storyboard.NAME, Storyboard.CLONE_SETTINGS, Storyboard.HOSTS, Storyboard.TOPOLOGY, Storyboard.NETWORKS, host_id))
                             else:
                                 nw_name = network[Storyboard.NAME]
                                 # If network name present in nw_set, remove it to signify it was defined already
                                 if nw_name in nw_set:
                                     nw_set.remove(nw_name)
-                            if Storyboard.MEMBERS not in network.keys():
-                                raise_flag("Tag 'members' is missing for tag 'network', 'topology' - 'clone_settings' - 'hosts' section.")
+                                network_keys.remove(Storyboard.NAME)
+
+                            # MEMBERS tag
+                            if Storyboard.MEMBERS not in network_keys:
+                                raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for subsection '{3}', subsubsection '{4}' of host '{5}'.".format(Storyboard.MEMBERS, Storyboard.CLONE_SETTINGS, Storyboard.HOSTS, Storyboard.TOPOLOGY, Storyboard.NETWORKS, host_id))
+                            else:
+                                network_keys.remove(Storyboard.MEMBERS)
+
+                            # GATEWAY tag
+                            if Storyboard.GATEWAY in network_keys:
+                                network_keys.remove(Storyboard.GATEWAY)
+
+                            # Check whether there are any (unknown) tags left in the list
+                            if network_keys:
+                                raise_flag("Unknown tag(s) in section '{0}', subsection '{1}', for subsection '{2}', subsubsection '{3}' of host '{4}', network '{5}': {6}".format(Storyboard.CLONE_SETTINGS, Storyboard.HOSTS, Storyboard.GUESTS, Storyboard.TOPOLOGY, host_id, nw_name, network_keys))
+
                         # If there are still elements in nw_set, it means that the forwarding rules specified
                         # previously contain undefined networks
                         if nw_set:
-                            raise_flag("Undefined networks in rule of 'forwarding_rules' for one of the guests in 'clone_settings' - 'guests' section: {0}".format(list(nw_set)))
+                            raise_flag("Undefined network(s) in section '{0}', subsection '{1}' for subsection '{2}', subsubsection '{3}' for host '{4}': {5}".format(Storyboard.CLONE_SETTINGS, Storyboard.HOSTS, Storyboard.GUESTS, Storyboard.FORWARDING_RULES, host_id, list(nw_set)))
+
+                        topology_keys.remove(Storyboard.NETWORKS)
+
+                    # Check whether there are any (unknown) tags left in the list
+                    if topology_keys:
+                        raise_flag("Unknown tag(s) in section '{0}', subsection '{1}', for subsection '{2}', subsubsection '{3}' of host '{4}': {5}".format(Storyboard.CLONE_SETTINGS, Storyboard.HOSTS, Storyboard.GUESTS, Storyboard.TOPOLOGY, host_id, host_keys))
+
+                    host_keys.remove(Storyboard.TOPOLOGY)
+
+                # Check whether there are any (unknown) tags left in the list
+                if host_keys:
+                    raise_flag("Unknown tag(s) in section '{0}', subsection '{1}': {2}".format(Storyboard.CLONE_SETTINGS, Storyboard.HOSTS, host_keys))
+
+            clone_keys.remove(Storyboard.HOSTS)
+
+        # Check whether there are any (unknown) tags left in the list
+        if clone_keys:
+            raise_flag("Unknown tag(s) in section '{0}': {1}".format(Storyboard.CLONE_SETTINGS, clone_keys))
 
     return FLAG
