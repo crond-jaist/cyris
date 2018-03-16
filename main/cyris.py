@@ -86,7 +86,7 @@ class CyberRangeCreation():
 
     range_details_filename = None
     range_notification_filename = None
-    
+
     #########################################################################
     # Init function contains global variables
     def __init__(self, argv):
@@ -103,7 +103,7 @@ class CyberRangeCreation():
         global USER_EMAIL
 
         global DEBUG
-        
+
         # Parse options and command-line arguments
         try:
             opts, args = getopt.getopt(argv, "hdv", ["help", "destroy-on-error", "verbose"])
@@ -123,13 +123,13 @@ class CyberRangeCreation():
             elif opt in ("-v", "--verbose"):
                 DEBUG = True
                 print "* DEBUG: cyris: Debug mode enabled."
-    
+
         # Then with command-line arguments
         if len(args)<2:
             print "* ERROR: cyris: Not enough command-line arguments."
             self.usage()
             quit(-1)
-    
+
         # Get name of description file
         self.training_description = args[0]
 
@@ -144,8 +144,8 @@ class CyberRangeCreation():
         if ABS_PATH == False:
             self.creation_log_file = "" # Needed for handle_error() to work correctly
             self.handle_error()
-            quit(-1)        
-        
+            quit(-1)
+
         #self.training_description = sys.argv[1]
         self.hosts = []
         self.guests = []
@@ -241,7 +241,7 @@ class CyberRangeCreation():
             print "* ERROR: cyris: Passwordless sudo execution is not enabled."
             self.handle_error()
             quit(-1)
-            
+
         # TODO: Check that SSH keys are defined?!
 
         # TODO: Check if Internet access is available?!
@@ -256,7 +256,7 @@ class CyberRangeCreation():
         for i in list_elements:
             path += "{0}/".format(i)
         return name, path
-                        
+
     #########################################################################
     # Decide the last bit of the base image's IP address to make sure that no running
     # base images have the same IP address.
@@ -321,7 +321,7 @@ class CyberRangeCreation():
         except yaml.YAMLError, exc:
             print "* ERROR: cyris: Issue with the cyber range description file: ", exc
             return
-        
+
         # for each playbook in the training description
         for element in doc:
             if "host_settings" in element.keys():
@@ -497,7 +497,7 @@ class CyberRangeCreation():
 
                         command = ManageUsers(guest_addr, ABS_PATH).add_account(new_account, new_passwd, full_name)
                         command_list.append(command)
-                
+
                 if "modify_account" in task.keys():
                     for account in task["modify_account"]:
                         old_account = account["account"]
@@ -518,7 +518,7 @@ class CyberRangeCreation():
                             #print new_passwd
                             guest_passwd = new_passwd
                             guest.setRootPasswd(new_passwd)
-            
+
                 if "install_package" in task.keys():
                     installTools = InstallTools(guest_addr, "root", ABS_PATH)
                     for package in task["install_package"]:
@@ -586,7 +586,7 @@ class CyberRangeCreation():
                             crspd_option = malware["port"]
                         command = EmulateMalware(guest_addr, name, mode, crspd_option, ABS_PATH).command()
                         command_list.append(command)
-        
+
                 if "copy_content" in task.keys():
                     for content in task["copy_content"]:
                         src = content["src"]
@@ -660,7 +660,7 @@ class CyberRangeCreation():
         else:
             return_value = os.system("{0} >> /dev/null".format(command))
         exit_status = os.WEXITSTATUS(return_value)
-            
+
         if exit_status != 0:
             print "* ERROR: cyris: Issue when executing command (exit status = %d):" % (exit_status)
             print "  %s" % (command)
@@ -858,7 +858,7 @@ class CyberRangeCreation():
         if USER_EMAIL is not None:
             # Prepare the sendemail command
             sendemail_command = "sendemail -f '" + EMAIL_SENDER + "' -t {0} -u 'Training Session #{1} Is Ready' -s " + EMAIL_SERVER + " -o tls=yes -o message-file={2}{3}{1}.txt -a {2}{4}{1}.yml -xu " + EMAIL_ACCOUNT + " -xp " + EMAIL_PASSWD
-        
+
             # Copy the email to the gateway to send to user if it's the gateway mode.
             if GW_MODE:
                 command = "scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no {0}{1}{2}.txt {3}@{4}:/tmp; scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no {0}{5}{2}.yml {3}@{4}:/tmp;".format(self.directory, RANGE_NOTIFICATION_FILE, self.clone_setting.getRangeId(), GW_ACCOUNT, GW_INSIDE_ADDR, RANGE_DETAILS_FILE)
@@ -912,7 +912,7 @@ class CyberRangeCreation():
         print "-h, --help              Display help"
         print "-d, --destroy-on-error  In case of error, try to destroy cyber range"
         print "-v, --verbose           Display verbose messages for debugging purposes\n"
-                            
+
     #########################################################################
     # Main function.
     def main(self):
@@ -923,7 +923,7 @@ class CyberRangeCreation():
 
         # Parse description
         print "* INFO: cyris: Parse the cyber range description."
-        
+
         filename = self.training_description
         if check_description(self.training_description, ABS_PATH) == False:
             self.handle_error()
@@ -947,7 +947,7 @@ class CyberRangeCreation():
 
         ####### Set up names for config files #############
         self.set_config_file_name()
-        
+
         ######## Prepare host files for parallel scp and ssh #########
         ssh_host_file = "{0}settings/{1}pssh_host.txt".format(ABS_PATH, self.clone_setting.getRangeId())
         scp_host_file = "{0}settings/{1}pscp_host.txt".format(ABS_PATH, self.clone_setting.getRangeId())
@@ -1026,14 +1026,14 @@ class CyberRangeCreation():
                 print command.getCommand()
 
             self.os_system(self.creation_log_file, command.getCommand())
-            
+
             # add default gw
             # FIXME: Should use the virbr_addr value instead of the fixed IP below
             command = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{0} route add default gw 192.168.122.1".format(guest.getBasevmAddr())
             if DEBUG:
                 print command
             self.os_system(self.creation_log_file, command)
-        
+
         #####################################################################
         # Done preparation
         if TIME_MEASURE:
@@ -1078,7 +1078,7 @@ class CyberRangeCreation():
         ######## execute self.clone_vm_commands() function (which links to class VMClone in modules.py  ######
         ####################### to create config files and get necessary information #########################
         self.clone_vm_commands(dict_guest_prg_afcln)
-       
+
         ######## shutdown base images ###########
         print "* INFO: cyris: Shut down the base VMs before cloning."
         shutdown_command = self.shut_down_baseimg()
@@ -1133,7 +1133,7 @@ class CyberRangeCreation():
         if DEBUG:
             print clone_command
         self.os_system(self.creation_log_file, "{0} \"{1}\"".format(parallel_ssh_command, clone_command))
-        
+
         ######## check if virtual machines are up #########
         print "* INFO: cyris: Wait for the cloned VMs to start."
 
@@ -1142,7 +1142,7 @@ class CyberRangeCreation():
         print "* INFO: cyris: Perform post-cloning setup of the VMs."
 
         print "* INFO: cyris: - Configure network settings"
-        
+
         ######## set up forwarding rules for routing ########
         fw_command = "chmod +x {0}; {0};".format(self.setup_fwrule_file)
         if DEBUG:
@@ -1150,7 +1150,7 @@ class CyberRangeCreation():
         self.os_system(self.creation_log_file, "{0} \"{1}\"".format(parallel_ssh_command, fw_command))
         if DEBUG:
             print "Forwarding rules for routing are set"
-        
+
         ######## set up default gateway ########
         dfgw_command = "chmod +x {0}; {0};".format(self.setup_dfgw_file)
         if DEBUG:
@@ -1293,7 +1293,7 @@ class CyberRangeCreation():
         if not DESTROY_ON_ERROR and self.creation_log_file:
             print "  Check the log file for details: %s" % (self.creation_log_file)
         print "-------------------------------------------------------------------------"
-        
+
 # Start the program
 cyris = CyberRangeCreation(sys.argv[1:])
 cyris.main()
