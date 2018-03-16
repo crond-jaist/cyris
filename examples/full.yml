@@ -114,7 +114,7 @@
       - attack_type: ssh_attack
         target_account: daniel
         attempt_number: 200
-        attack_time: 20161231
+        attack_time: 2017-11-18
 
     # The emulate_traffic_capture_file task is for generating pcap files that contain
     # specific network traffic traces. In the current stage, CyRIS supports generating
