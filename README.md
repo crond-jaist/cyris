@@ -73,3 +73,5 @@ In case you encounter subsequent errors due to mis-configurations, and the range
 
 For a research background about CyRIS, please consult the following paper:
 * C. Pham, D. Tang, K. Chinen, R. Beuran, "CyRIS: A Cyber Range Instantiation System for Facilitating Security Training", International Symposium on Information and Communication Technology (SoICT 2016), Ho Chi Minh, Vietnam, December 8-9, 2016, pp. 251-258.
+
+For the list of contributors, please check the file CONTRIBUTORS.
