@@ -1,3 +1,15 @@
+CyRIS v1.0
+----------
+* Modified the settings of the sample base VM to make it easier
+  to use by external parties
+* Improved the verification mechanism for the shutdown state of VMs
+* Updated the description file examples to latest syntax
+* Improved the connectivity checking for VMs (now using actual ssh
+  connections for validation)
+* Improved the syntax checking for description files, including
+  detection of unknown tags, invalid values, undefined guests, etc.
+* Other minor improvements and bug fixes
+
 CyRIS v0.2
 ----------
 * Simplified README.md as most information is in User Guide
@@ -19,4 +31,4 @@ CyRIS v0.2
 
 CyRIS v0.1
 ----------
-* Firs public release
+* First public release
