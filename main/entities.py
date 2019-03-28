@@ -74,12 +74,13 @@ in the description. It has variables for:
                                     on the base image guest.
 '''
 class Guest(object):
-    def __init__(self, guest_id, basevm_addr, root_passwd, basevm_host, basevm_config_file, basevm_type, basevm_name, tasks):
+    def __init__(self, guest_id, basevm_addr, root_passwd, basevm_host, basevm_config_file, basevm_os_type, basevm_type, basevm_name, tasks):
         self.guest_id = guest_id
         self.basevm_addr = basevm_addr
         self.basevm_host = basevm_host
         self.root_passwd = root_passwd
         self.basevm_config_file = basevm_config_file
+        self.basevm_os_type =basevm_os_type
         self.basevm_type = basevm_type
         self.basevm_name = basevm_name
         self.tasks = tasks
@@ -104,6 +105,9 @@ class Guest(object):
 
     def setBasevmConfigFile(self, new_file):
         self.basevm_config_file = new_file
+
+    def getBasevmOSType(self):
+        return self.basevm_os_type
 
     def getBasevmType(self):
         return self.basevm_type
@@ -226,7 +230,7 @@ in the session "clone_settings" of the cyber range description. It has two varia
     @param    network_interfaces     List of network interfaces of that guest.
 '''
 class CloneGuest(object):
-    def __init__(self, guest_id, index, has_fw_setup, fwrule_desc_list, is_entry_point):
+    def __init__(self, guest_id, index, has_fw_setup, fwrule_desc_list, is_entry_point,os_type):
         self.guest_id = guest_id
         self.index = index
         self.nic_addr_dict = OrderedDict()
@@ -236,6 +240,7 @@ class CloneGuest(object):
         self.fwrule_desc_list = fwrule_desc_list
         self.fwrule_list = []
         self.is_entry_point = is_entry_point
+        self.os_type=os_type
 
     def getGuestId(self):
         return self.guest_id
@@ -278,6 +283,9 @@ class CloneGuest(object):
 
     def setIsEntryPoint(self, value):
         self.is_entry_point = value
+
+    def getOsType(self):
+        return self.os_type
 
     def __str__(self):
         return "guest_id: " + self.getGuestId() + ", guest_index: " + str(self.getIndex()) + ", guest_nic_addr: " + str(self.getNicAddrDict()) + ", guest_nic_gw: " + str(self.getNicGwDict()) + ", fwrule_desc: " + str(self.getFwRuleDescList()) + ", fwrule_list: " + str(self.getFwRuleList()) + ", is_entry_point: " + str(self.getIsEntryPoint())
@@ -800,7 +808,7 @@ def main():
                 print "\n"
             print "entry point: ", instance.getEntryPoint()
     # Send email function
-#    f = open("/home/crond/cyris-development/main/mail_template", "r")
+#    f = open("/home/cyuser/cyris-development/main/mail_template", "r")
 #    contents = f.readlines()
 #    f.close()
 #    contents.insert(0, "Dear John Doe,")
@@ -816,7 +824,7 @@ def main():
 #                    instance_index += 1
 #                    break
 #    contents.insert(6, "{0}\n".format(information))
-#    f = open("/home/crond/cyris-development/main/inform_email", "w")
+#    f = open("/home/cyuser/cyris-development/main/inform_email", "w")
 #    contents = "".join(contents)
 #    f.write(contents)
 #    f.close()

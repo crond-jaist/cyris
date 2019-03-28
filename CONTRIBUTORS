@@ -4,7 +4,11 @@ Initial implementation:
   Cuong Pham
   Razvan Beuran
 
-Various contributions:
-  Yuichiro Sakamoto
+Current maintainer:
+  Razvan Beuran
   Masanori Sunagawa
-  Fumikazu Awa
+  Ken-chi Chinen
+
+Various contributions:
+  Yuichiro Sakamoto	for WINDOWS support
+  Fumikazu Awa		for various test

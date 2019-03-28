@@ -24,16 +24,23 @@ class Modules(object):
 ############################################################
 # Copy ssh keygen from the local machine to a remote one
 class SSHKeygenHostname(Modules):
-    def __init__(self, vm_addr, root_passwd, hostname, mstnode_account, abspath):
+    def __init__(self, vm_addr, root_passwd, hostname, mstnode_account, abspath, os_type):
         Modules.__init__(self, "SSHKeygen", abspath)
         self.vm_addr = vm_addr
         self.root_passwd = root_passwd
         self.hostname = hostname
         self.mstnode_account = mstnode_account
+        self.os_type =os_type
+
 
     def command(self):
         desc = "Generate ssh keys and do hostname setup"
-        command_string = "{0}{5}/sshkey_hostname_setup/sshkey_setup.sh {1} {2} {3}; {0}{5}/sshkey_hostname_setup/hostname_setup.sh {1} {2} {4};".format(self.getAbsPath(), self.vm_addr, self.root_passwd, self.mstnode_account, self.hostname, INSTANTIATION_DIR)
+        if self.os_type=="windows.7":
+            command_string ="{0}{1}/sshkey_hostname_setup/sshkey_setup_win_cmd.sh {0} {1} {2} {3} {4};".format(self.getAbsPath(), INSTANTIATION_DIR, self.vm_addr, self.root_passwd, self.mstnode_account)
+        elif  self.os_type in ["windows.8.1","windows.10"] :
+            command_string ="{0}{1}/sshkey_hostname_setup/sshkey_setup_win_unix.sh {0} {1} {2} {3} {4};".format(self.getAbsPath(), INSTANTIATION_DIR, self.vm_addr, self.root_passwd, self.mstnode_account)
+        else:
+            command_string = "{0}{5}/sshkey_hostname_setup/sshkey_setup.sh {1} {2} {3}; {0}{5}/sshkey_hostname_setup/hostname_setup.sh {1} {2} {4};".format(self.getAbsPath(), self.vm_addr, self.root_passwd, self.mstnode_account, self.hostname, INSTANTIATION_DIR)
         command = Command(command_string, desc)
         return command
 
@@ -45,25 +52,33 @@ class ManageUsers(Modules):
 	Modules.__init__(self, "ManageUsers", abspath)
 	self.addr = addr
 
-    def add_account(self, new_account, new_passwd, full_name):
+    def add_account(self, new_account, new_passwd, full_name, os_type):
         desc = "Add user account '{0}'".format(new_account)
         if full_name:
             full_name_arg=full_name
         else:
             full_name_arg=""
 
-        command_string = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{0} 'bash -s' < {1}{5}/users_managing/add_user.sh {2} {3} yes {4}".format(self.addr, self.getAbsPath(), new_account, new_passwd, full_name_arg, INSTANTIATION_DIR)
+        if os_type=="windows.7" :
+            command_string = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{0} 'net user {2} {3} /ADD' ;".format(self.addr, self.getAbsPath(), new_account, new_passwd)
+            command_string += "sshpass -p {0} ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no {1}@{2} 'dir' ;".format(new_passwd, new_account, self.addr)
+            command_string += "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{0} 'net localgroup \"Remote Desktop Users\" {2} /ADD'".format(self.addr, self.getAbsPath(), new_account)
+        else:
+            command_string = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{0} 'bash -s' < {1}{5}/users_managing/add_user.sh {2} {3} yes {4}".format(self.addr, self.getAbsPath(), new_account, new_passwd, full_name_arg, INSTANTIATION_DIR)
         command = Command(command_string, desc)
         return command
 
-    def modify_account(self, account, new_account, new_passwd):
+    def modify_account(self, account, new_account, new_passwd, os_type):
         sub_desc = "new name: {0}  new password: {1}".format(new_account, new_passwd)
         if new_account == "null":
             sub_desc = "new password: {0}".format(new_passwd)
         elif new_passwd == "null":
             sub_desc = "new name: {0}".format(new_account)
         desc = "Modify user account '{0}': {1}".format(account, sub_desc)
-        command_string = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{0} 'bash -s' < {1}{5}/users_managing/modify_user.sh {2} {3} {4}".format(self.addr, self.getAbsPath(), account, new_account, new_passwd, INSTANTIATION_DIR)
+        if os_type =="windows.7":
+            command_string = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{0} 'net user {1} {2} ' ".format(self.addr, account, new_passwd)
+        else:
+            command_string = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{0} 'bash -s' < {1}{5}/users_managing/modify_user.sh {2} {3} {4}".format(self.addr, self.getAbsPath(), account, new_account, new_passwd, INSTANTIATION_DIR)
         command = Command(command_string, desc)
         return command
 
@@ -81,7 +96,14 @@ class InstallTools(Modules):
                 desc = "Install package '{0}'".format(tool_name)
             else:
                 desc = "Install package '{0}' version {1}".format(tool_name, version)
-            command_string = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no {0}@{1} {2} install -y {3} {4}".format(self.account, self.addr, package_manager, tool_name, version)
+            
+            if package_manager == "chocolatey":
+                if version == "":
+                    command_string = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{1} {2} install -y {3}".format(self.account, self.addr, package_manager, tool_name)
+                else:
+                    command_string = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{1} {2} install -y {3} --version {4}".format(self.account, self.addr, package_manager, tool_name, version)
+            else:
+                command_string = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no {0}@{1} {2} install -y {3} {4}".format(self.account, self.addr, package_manager, tool_name, version)
             command = Command(command_string, desc)
             return command
 	else:
@@ -167,21 +189,25 @@ class ModifyRuleset(Modules):
         return command
 
 class CopyContent(Modules):
-    def __init__(self, src, dst, image_addr, image_passwd, abspath):
+    def __init__(self, src, dst, image_addr, image_passwd, abspath, os_type):
         Modules.__init__(self, "CopyContent", abspath)
         self.src = src
         self.dst = dst
         self.image_addr = image_addr
         self.image_passwd = image_passwd
+        self.os_type= os_type
 
     def command(self):
         desc = "Copy file '{0}'".format(self.src)
-        command_string = "{0}{5}/content_copy_program_run/copy_content.sh {1} {2} {3} {4}".format(self.getAbsPath(), self.src, self.dst, self.image_addr, self.image_passwd, INSTANTIATION_DIR)
+        if (self.os_type=="windows.7"):
+            command_string = "{0}{5}/content_copy_program_run/copy_content_win.sh {1} \" {2} \" {3} {4}".format(self.getAbsPath(), self.src, self.dst, self.image_addr, self.image_passwd, INSTANTIATION_DIR)
+        else:
+            command_string = "{0}{5}/content_copy_program_run/copy_content.sh {1} {2} {3} {4}".format(self.getAbsPath(), self.src, self.dst, self.image_addr, self.image_passwd, INSTANTIATION_DIR)
         command = Command(command_string, desc)
         return command
 
 class ExecuteProgram(Modules):
-    def __init__(self, program, interpreter, args, image_addr, image_passwd, log_file, abspath):
+    def __init__(self, program, interpreter, args, image_addr, image_passwd, log_file, abspath,os_type):
         Modules.__init__(self, "ExecuteProgram", abspath)
         self.program = program
         self.interpreter = interpreter
@@ -189,6 +215,7 @@ class ExecuteProgram(Modules):
         self.image_addr = image_addr
         self.image_passwd = image_passwd
         self.log_file = log_file
+        self.os_type = os_type
 
     def getProgram(self):
         return self.program
@@ -196,13 +223,13 @@ class ExecuteProgram(Modules):
     # This command_post_clone is for tasks that are required to be executed after the cloning step
     def command_post_clone(self, image_addr):
         desc = "Execute program post-cloning '{0}'".format(self.program)
-        command_string = "python {0}{7}/content_copy_program_run/run_program.py {1} {2} {3} {4} {5} {6}".format(self.getAbsPath(), self.program, self.interpreter, self.args, image_addr, self.image_passwd, self.log_file, INSTANTIATION_DIR)
+        command_string = "python {0}{7}/content_copy_program_run/run_program.py \"{1}\" {2} {3} {4} {5} {6} {8}".format(self.getAbsPath(), self.program, self.interpreter, self.args, self.image_addr, self.image_passwd, self.log_file, INSTANTIATION_DIR, self.os_type)
         command = Command(command_string, desc)
         return command
 
     def command(self):
         desc = "Execute program '{0}'".format(self.program)
-        command_string = "python {0}{7}/content_copy_program_run/run_program.py {1} {2} {3} {4} {5} {6}".format(self.getAbsPath(), self.program, self.interpreter, self.args, self.image_addr, self.image_passwd, self.log_file, INSTANTIATION_DIR)
+        command_string = "python {0}{7}/content_copy_program_run/run_program.py \"{1}\" {2} {3} {4} {5} {6} {8}".format(self.getAbsPath(), self.program, self.interpreter, self.args, self.image_addr, self.image_passwd, self.log_file, INSTANTIATION_DIR, self.os_type)
         command = Command(command_string, desc)
         return command
 
@@ -214,5 +241,5 @@ class BaseImageLaunch(Modules):
 	self.image_name = image_name
 
     def command(self):
-	return "virsh --quiet define {0} > /dev/null; virsh --quiet start {1} > /dev/null".format(self.xml_config, self.image_name)
+        return "virsh --quiet define {0} > /dev/null; sleep 0.5; virsh --quiet start {1} > /dev/null".format(self.xml_config, self.image_name)
 

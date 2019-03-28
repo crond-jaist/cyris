@@ -78,10 +78,15 @@ class VMClone(object):
                             filename = "{0}initif.conf".format(self.directory)
                             content = "\n"
                             for i in range(0,nic_num):
-                                content += "eth{0} {1}\n".format(i, self.mgmt_addr)
+                                initif_mac_addr_5="%x" % int(clone_guest.getNicAddrDict()["eth"+str(i)].split(".")[2])
+                                initif_mac_addr_6="%x" % int(clone_guest.getNicAddrDict()["eth"+str(i)].split(".")[3])
+                                content += "eth{0} {1} {2}:{3}\n".format(i, self.mgmt_addr, initif_mac_addr_5.zfill(2), initif_mac_addr_6.zfill(2))
                             with open(filename, "w") as f:
                                 f.write(content)
-                            command = "scp {0}initif.conf root@{1}:/bin/cyberrange/initif".format(self.directory, guest.getBasevmAddr())
+                            if guest.getBasevmOSType() =='windows.7':
+                                command = "scp {0}initif.conf root@{1}:'C:\CyberRange\initif'".format(self.directory, guest.getBasevmAddr())
+                            else:
+                                command = "scp {0}initif.conf root@{1}:/bin/cyberrange/initif".format(self.directory, guest.getBasevmAddr())
                             os.system(command + ">> {0} 2>&1".format(self.log_file))
                             break
                     break
@@ -102,7 +107,8 @@ class VMClone(object):
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             # The command below causes a warning to be displayed => inform users that it's harmless
-            print "* NOTE: cyris: The warning below can be safely ignored (caused by use of paramiko library in 'clone_environment.py')."
+            # NOTE: After upgrade to Ubuntu 18.04 warning disappeared, so message was commented out
+            #print "* NOTE: cyris: The warning below can be safely ignored (caused by use of paramiko library in 'clone_environment.py')."
             ssh.connect(mgmt_addr, username=account)
 
             # Open an SFTP session on the SSH server
@@ -238,8 +244,14 @@ class VMClone(object):
                     for guest in instance.getCloneGuestList():
                         if len(guest.getNicGwDict()) != 0:
                             for nic,gw in guest.getNicGwDict().items():
-                                add_gw_str = "route add default gw {0} {1}".format(gw, nic)
-                                command += "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{0} \"{1}\"\n".format(guest.getNicAddrDict().values()[0], add_gw_str)
+                                if guest.getOsType() == "windows.7":
+                                    add_gw_str= "route delete 0.0.0.0 mask 0.0.0.0"
+                                    command += "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{0} \"{1}\"\n".format(guest.getNicAddrDict().values()[0], add_gw_str)
+                                    add_gw_str= "route add 0.0.0.0 mask 0.0.0.0 {0}".format(gw)
+                                    command += "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{0} \"{1}\"\n".format(guest.getNicAddrDict().values()[0], add_gw_str)
+                                else:
+                                    add_gw_str = "route add default gw {0} {1}".format(gw, nic)
+                                    command += "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{0} \"{1}\"\n".format(guest.getNicAddrDict().values()[0], add_gw_str)
                     dfgw_file.write(command)
 
 
@@ -265,13 +277,19 @@ class VMClone(object):
                 for instance in clone_host.getInstanceList():
                     # Create tunnels following the gateway mode.
                     if self.gw_mode:
-                        # Create tunnel in the crond-gw machine with tunnel name is "ct{range_id}{port}".
+                        # Create tunnel on the crond-gw machine with tunnel name is "ct{range_id}{port}".
                         command = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no {0}@{1} -f \"bash -c 'exec -a ct{2}_{3} ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f -L 0.0.0.0:{3}:{4}:{3} {0}@localhost -N'\";\n".format(self.gw_account, self.gw_addr, self.clone_setting.getRangeId(), instance.getEntryPoint().getPort(), mgmt_addr)
                         # Create tunnel in the corresponding host.
                         command += "bash -c 'exec -a ct{0}_{1} ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f -L 0.0.0.0:{1}:{2}:22 {3}@localhost -N'\n".format(self.clone_setting.getRangeId(), instance.getEntryPoint().getPort(), instance.getEntryPoint().getAddr(), account)
                     # Create tunnels following the un-gateway mode.
                     else:
-                        command = "bash -c 'exec -a ct{0}_{1} ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f -L 0.0.0.0:{1}:{2}:22 {3}@localhost -N'\n".format(self.clone_setting.getRangeId(), instance.getEntryPoint().getPort(), instance.getEntryPoint().getAddr(), account)
+                        for guest in instance.getCloneGuestList():
+                            if guest.getIsEntryPoint()==True:
+                                os_type=guest.getOsType()
+                        if os_type=="windows.7":
+                            command = "bash -c 'exec -a ct{0}_{1} ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f -L 0.0.0.0:{1}:{2}:3389 {3}@localhost -N'\n".format(self.clone_setting.getRangeId(), instance.getEntryPoint().getPort(), instance.getEntryPoint().getAddr(), account)
+                        else:
+                            command = "bash -c 'exec -a ct{0}_{1} ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f -L 0.0.0.0:{1}:{2}:22 {3}@localhost -N'\n".format(self.clone_setting.getRangeId(), instance.getEntryPoint().getPort(), instance.getEntryPoint().getAddr(), account)
                     # Execute command.
                     tunnel_file.write(command)
                 command = "chmod +x {0};\n".format(self.destruction_file)
@@ -283,7 +301,7 @@ class VMClone(object):
                 for instance in clone_host.getInstanceList():
                     # Create random account and passwd.
                     FULL_NAME="" # No full name setting for the trainee account
-                    command = ManageUsers(instance.getEntryPoint().getAddr(), self.abspath).add_account(instance.getEntryPoint().getAccount(), instance.getEntryPoint().getPasswd(), FULL_NAME).getCommand()
+                    command = ManageUsers(instance.getEntryPoint().getAddr(), self.abspath).add_account(instance.getEntryPoint().getAccount(), instance.getEntryPoint().getPasswd(), FULL_NAME, os_type).getCommand()
                     entry_file.write("{0};\n".format(command))
 
             # Write commands to destruct tunnels using tunnel names.

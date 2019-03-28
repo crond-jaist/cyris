@@ -18,6 +18,7 @@ import fcntl            # for atomic file writing
 import getopt
 import logging
 import re
+import urllib
 
 # Internal imports.
 from modules import SSHKeygenHostname, EmulateAttacks, ManageUsers, InstallTools, BaseImageLaunch, EmulateMalware, GenerateTrafficCaptureFiles, ModifyRuleset, CopyContent, ExecuteProgram
@@ -38,6 +39,7 @@ logging.basicConfig(format='* %(levelname)s: %(filename)s: %(message)s')
 #############################################################################
 
 DEBUG = False
+DEBUG2 = False
 
 # Whether to try to destroy a cyber range when an error occurs
 DESTROY_ON_ERROR = False
@@ -48,7 +50,7 @@ PSSH_CONCURRENCY = 50  # Maximum number of concurrent connections
 PSCP_CONCURRENCY = 50  # Maximum number of concurrent connections
 
 # Settings for check ssh function: total timeout and for one try
-CHECK_SSH_TIMEOUT_TOTAL = 300
+CHECK_SSH_TIMEOUT_TOTAL = 120
 CHECK_SSH_TIMEOUT_ONCE = 5
 CHECK_SSH_CONNECTIVITY_INDICATOR = "Permission denied"
 
@@ -256,24 +258,23 @@ class CyberRangeCreation():
         for i in list_elements:
             path += "{0}/".format(i)
         return name, path
-
     #########################################################################
     # Decide the last bit of the base image's IP address to make sure that no running
     # base images have the same IP address.
     def add_basevm_ipaddr(self, last_bit):
         try:
-	    # If the logs/running_ipaddr.txt doesn't exist before, it means no base images is running.
-	    # Therefore, it needs only to create the file, and write the last_bit down.
-	    if not os.path.isfile(self.cur_running_ipaddr_file):
-	        with open(self.cur_running_ipaddr_file, "w") as f:
-		    fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
-		    f.write("{0}\n".format(str(last_bit)))
-		    fcntl.flock(f, fcntl.LOCK_UN)
-	        return last_bit
-	    # Else if the file exists.
-	    else:
-	        with open(self.cur_running_ipaddr_file, "r+") as f:
-		    fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            # If the logs/running_ipaddr.txt doesn't exist before, it means no base images is running.
+            # Therefore, it needs only to create the file, and write the last_bit down.
+            if not os.path.isfile(self.cur_running_ipaddr_file):
+                with open(self.cur_running_ipaddr_file, "w") as f:
+                    fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    f.write("{0}\n".format(str(last_bit)))
+                    fcntl.flock(f, fcntl.LOCK_UN)
+                return last_bit
+            # Else if the file exists.
+            else:
+                with open(self.cur_running_ipaddr_file, "r+") as f:
+                    fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
                     # Original code; should work now as every written number is followed by EOL
                     cur_lb_list = f.readlines()
@@ -284,33 +285,32 @@ class CyberRangeCreation():
                     # Make list of lines that are _not_ empty strings
                     #cur_lb_list = list(line for line in cur_lb_list if line)
 
-		    # Check if the file is empty.
-		    if len(cur_lb_list) == 0:
-		        f.write("{0}\n".format(str(last_bit)))
-		        fcntl.flock(f, fcntl.LOCK_UN)
-		        return last_bit
-		    # If the file isn't empty.
-		    else:
-		        # Read current last bits in the file.
-		        # Current checking position in the file.
-		        i = 0
-		        # Iterate the current addr list to check if the last bit has been existed. 
-		        while (i < len(cur_lb_list)):
+                    # Check if the file is empty.
+                    if len(cur_lb_list) == 0:
+                        f.write("{0}\n".format(str(last_bit)))
+                        fcntl.flock(f, fcntl.LOCK_UN)
+                        return last_bit
+                    # If the file isn't empty.
+                    else:
+                        # Read current last bits in the file.
+                        # Current checking position in the file.
+                        i = 0
+                        # Iterate the current addr list to check if the last bit has been existed.
+                        while (i < len(cur_lb_list)):
                             if DEBUG:
-			        print "* DEBUG: cyris: Current element in ipaddr list:", int(cur_lb_list[i])
-			    if int(cur_lb_list[i]) == last_bit:
-			        i = 0
-			        last_bit += 1
-			    else:
-			        i += 1
-		        f.write("{0}\n".format(str(last_bit)))
-		        fcntl.flock(f, fcntl.LOCK_UN)
-		        return last_bit
+                                print "* DEBUG: cyris: Current element in ipaddr list:", int(cur_lb_list[i])
+                            if int(cur_lb_list[i]) == last_bit:
+                                i = 0
+                                last_bit += 1
+                            else:
+                                i += 1
+                        f.write("{0}\n".format(str(last_bit)))
+                        fcntl.flock(f, fcntl.LOCK_UN)
+                        return last_bit
         except IOError, e:
-            print "* ERROR: cyris: IOError:", e 
+            print "* ERROR: cyris: IOError:", e
             self.handle_error()
             quit(-1)
-
     #########################################################################
     # Parse information from the cyber range definition description to three
     # variables: self.hosts list, self.guests list, and self.cloneInfos list
@@ -352,7 +352,13 @@ class CyberRangeCreation():
                         tasks = g["tasks"]
                     else:
                         tasks = []
-                    guest = Guest(g["id"], ip_addr, BASEIMG_ROOT_PASSWD, g["basevm_host"], g["basevm_config_file"], g["basevm_type"], "", tasks)
+                    # If basevm_os_type defined
+                    if "basevm_os_type" in g.keys():
+                        basevm_os_type = g["basevm_os_type"]
+                    else:
+                        basevm_os_type = "centos.7"
+                        #guest = Guest(g["id"], ip_addr, BASEIMG_ROOT_PASSWD, g["basevm_host"], g["basevm_config_file"], g["basevm_os_type"], g["basevm_type"], "", tasks)
+                    guest = Guest(g["id"], ip_addr, BASEIMG_ROOT_PASSWD, g["basevm_host"], g["basevm_config_file"], basevm_os_type, g["basevm_type"], "", tasks)
                     self.guests.append(guest)
 
         if "clone_settings" in element.keys():
@@ -404,7 +410,10 @@ class CyberRangeCreation():
                                 is_entry_point = False
                             # Create a list of clone_guest with size=number
                             for k in range(1, number+1):
-                                clone_guest = CloneGuest(guest_id, k, has_fw_setup, fw_rules, is_entry_point)
+                                for vm_guest in self.guests:
+                                    if guest_id==vm_guest.getGuestId():
+                                        os_type=vm_guest.getBasevmOSType()
+                                clone_guest = CloneGuest(guest_id, k, has_fw_setup, fw_rules, is_entry_point,os_type)
                                 clone_guest_list.append(clone_guest)
                         instance = CloneInstance(i, clone_guest_list, clone_subnw_list)
                         instance_list.append(instance)
@@ -481,6 +490,7 @@ class CyberRangeCreation():
         post_execute_program_list = []
         guest_addr = guest.getBasevmAddr()
         guest_passwd = guest.getRootPasswd()
+        guest_os_type= guest.getBasevmOSType()
         host_mgmt_addr, host_virbr_addr, host_account = self.get_host(guest.getBasevmHost())
         command = ""
         # Parse commands from tasks if it is not empty.
@@ -495,7 +505,7 @@ class CyberRangeCreation():
                         else:
                             full_name = ""
 
-                        command = ManageUsers(guest_addr, ABS_PATH).add_account(new_account, new_passwd, full_name)
+                        command = ManageUsers(guest_addr, ABS_PATH).add_account(new_account, new_passwd, full_name, guest_os_type)
                         command_list.append(command)
 
                 if "modify_account" in task.keys():
@@ -509,7 +519,7 @@ class CyberRangeCreation():
                             new_passwd = account["new_passwd"]
                         else:
                             new_passwd = "null"
-                        command = ManageUsers(guest_addr, ABS_PATH).modify_account(old_account, new_account, new_passwd)
+                        command = ManageUsers(guest_addr, ABS_PATH).modify_account(old_account, new_account, new_passwd, guest_os_type)
                         command_list.append(command)
                         #command = SSHKeygen(guest.getBasevmAddr(), new_passwd, ABS_PATH).command()
                         #command_list.append(command)
@@ -591,7 +601,7 @@ class CyberRangeCreation():
                     for content in task["copy_content"]:
                         src = content["src"]
                         dst = content["dst"]
-                        command = CopyContent(src, dst, guest_addr, guest_passwd, ABS_PATH).command()
+                        command = CopyContent(src, dst, guest_addr, guest_passwd, ABS_PATH, guest_os_type).command()
                         command_list.append(command)
 
                 # Since this task requires guest's password, it's mandatory to specify this task after any task related 
@@ -602,14 +612,17 @@ class CyberRangeCreation():
                         interpreter = program["interpreter"]
                         args = "none"
                         if "args" in program.keys():
-                            args = program["args"]
+#                            args = program["args"]
+                            args = urllib.quote(program["args"])
                         # If "execute_time" tag isn't included or is specified as "before_clone", then the command will be added
                         # to the command_list. Otherwise, the program will be added to the post_execute_program_list
                         if "execute_time" not in program.keys() or program["execute_time"] == "before_clone":
-                            command = ExecuteProgram(program_name, interpreter, args, guest_addr, guest_passwd, self.creation_log_file, ABS_PATH).command()
+                            command = ExecuteProgram(program_name, interpreter, args, guest_addr, guest_passwd, self.creation_log_file, ABS_PATH, guest_os_type).command()
                             command_list.append(command)
                         else:
-                            program = ExecuteProgram(program_name, interpreter, args, "", guest_passwd, self.creation_log_file, ABS_PATH)
+                            # change ExecuteProgram param4 to guest_addr from "" ,
+                            # because run_program.py's sys.argv are ignore "".
+                            program = ExecuteProgram(program_name, interpreter, args, guest_addr, guest_passwd, self.creation_log_file, ABS_PATH, guest_os_type)
                             post_execute_program_list.append(program)
 
                 if "firewall_rules" in task.keys():
@@ -690,22 +703,22 @@ class CyberRangeCreation():
                     used_port = element.split(":")[1] 
                     used_port_list.append(used_port)
 
-        if DEBUG: print("* DEBUG: cyris: clone_vm_commands: INITIAL: used_port_list={}".format(used_port_list))
+        if DEBUG2: print("* DEBUG: cyris: clone_vm_commands: INITIAL: used_port_list={}".format(used_port_list))
 
         # Generate fresh ports for entry points
         ## Generate a list with ports between a minimum and maximum value (both inclusive)
         MIN_PORT_NO = 60000
         MAX_PORT_NO = 65000
         fresh_port_list = range(MIN_PORT_NO, MAX_PORT_NO+1)
-        if DEBUG: print("* DEBUG: cyris: clone_vm_commands: INITIAL: fresh_port_list={}".format(fresh_port_list))
+        if DEBUG2: print("* DEBUG: cyris: clone_vm_commands: INITIAL: fresh_port_list={}".format(fresh_port_list))
         ## Transform port lists to sets to "subtract" used_port_list values,
         ## then transform the result back to a list
         fresh_port_list=list(set(fresh_port_list) - set(used_port_list))
-        if DEBUG: print("* DEBUG: cyris: clone_vm_commands: FILTERED: fresh_port_list={}".format(fresh_port_list))
+        if DEBUG2: print("* DEBUG: cyris: clone_vm_commands: FILTERED: fresh_port_list={}".format(fresh_port_list))
         ## Shuffle port list, so that port numbers are used in a random order
         ## (note that shuffling is done in place)
         random.shuffle(fresh_port_list)
-        if DEBUG: print("* DEBUG: cyris: clone_vm_commands: SHUFFLED: fresh_port_list={}".format(fresh_port_list))
+        if DEBUG2: print("* DEBUG: cyris: clone_vm_commands: SHUFFLED: fresh_port_list={}".format(fresh_port_list))
 
         # Set ports for entry points
         self.clone_setting.setCloneHostList(fresh_port_list)
@@ -806,9 +819,10 @@ class CyberRangeCreation():
                         if_addr = clone.getNicAddrDict().values()[0]
 
                         # Build command for checking SSH connectivity
-                        OPTIONS = "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PasswordAuthentication=no -o ConnectTimeout={0}".format(CHECK_SSH_TIMEOUT_ONCE)
-                        check_command = "ssh {0} 'ssh {1} {2} ls'".format(host.getMgmtAddr(), OPTIONS, if_addr)
-                        #if DEBUG: print "* DEBUG: cyris:       Command: {0}".format(check_command)
+                        OPTIONS_MGMT = "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PasswordAuthentication=no"
+                        OPTIONS_CR = OPTIONS_MGMT + " -o ConnectTimeout={0}".format(CHECK_SSH_TIMEOUT_ONCE)
+                        check_command = "ssh {} {} 'ssh {} {} ls'".format(OPTIONS_MGMT, host.getMgmtAddr(), OPTIONS_CR, if_addr)
+                        if DEBUG: print "* DEBUG: cyris:       Command: {0}".format(check_command)
 
                         # Call function that does the actual check
                         self.check_ssh_connectivity(check_command, if_addr)
@@ -832,28 +846,28 @@ class CyberRangeCreation():
         information = ""
         instance_index = 1
         # Send email following the gateway mode.
-	for host in self.clone_setting.getCloneHostList():
-	    for instance in host.getInstanceList():
-		for host in self.hosts:
-		    if instance.getEntryPoint().getHostId() == host.getHostId():
-			entry_point = instance.getEntryPoint()
+        for host in self.clone_setting.getCloneHostList():
+            for instance in host.getInstanceList():
+                for host in self.hosts:
+                    if instance.getEntryPoint().getHostId() == host.getHostId():
+                        entry_point = instance.getEntryPoint()
                         # Write down information following the gateway mode.
-			if GW_MODE:
+                        if GW_MODE:
                             host_name = GW_MGMT_ADDR
                         # Write down information following the un-gateway mode.
-			else:
+                        else:
                             host_name = host.getMgmtAddr()
-			information += "\n\n- Cyber range instance #{0}:\n  Login: ssh {1}@{2} -p {3}\n  Password: {4}".format(instance_index, entry_point.getAccount(), host_name, entry_point.getPort(), entry_point.getPasswd())
-			instance_index += 1
-			break
+                        information += "\n\n- Cyber range instance #{0}:\n  Login: ssh {1}@{2} -p {3}\n  Password: {4}".format(instance_index, entry_point.getAccount(), host_name, entry_point.getPort(), entry_point.getPasswd())
+                        instance_index += 1
+                        break
 
         if "{info_cr_instances}" in contents:
             contents = contents.replace("{info_cr_instances}", information)
 
         self.range_notification_filename = "{0}{1}{2}.txt".format(self.directory, RANGE_NOTIFICATION_FILE, self.clone_setting.getRangeId())
-	f = open(self.range_notification_filename, "w")
-	f.write(contents)
-	f.close()
+        f = open(self.range_notification_filename, "w")
+        f.write(contents)
+        f.close()
 
         if USER_EMAIL is not None:
             # Prepare the sendemail command
@@ -996,7 +1010,8 @@ class CyberRangeCreation():
         if exit_status != 0:
             print "* ERROR: cyris: Issue when creating the directory '%s'." % (self.directory)
             print "  A cyber range with the same id may already exist (or authentication error)."
-            self.handle_error()
+            is_fatal = True
+            self.handle_error(is_fatal)
             quit(-1)
 
         ######## Copy base images to the directory ##########
@@ -1019,7 +1034,7 @@ class CyberRangeCreation():
         print "* INFO: cyris: Prepare the base VMs for setup."
         for guest in self.guests:
             # ssh-cp-id and setup hostname to basevm
-            command = SSHKeygenHostname(guest.getBasevmAddr(), guest.getRootPasswd(), guest.getGuestId(), MSTNODE_ACCOUNT, ABS_PATH).command()
+            command = SSHKeygenHostname(guest.getBasevmAddr(), guest.getRootPasswd(), guest.getGuestId(), MSTNODE_ACCOUNT, ABS_PATH, guest.basevm_os_type).command()
             with open(self.creation_log_file, "a") as myfile:
                 myfile.write(command.getCommand())
             if DEBUG:
@@ -1029,7 +1044,13 @@ class CyberRangeCreation():
 
             # add default gw
             # FIXME: Should use the virbr_addr value instead of the fixed IP below
-            command = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{0} route add default gw 192.168.122.1".format(guest.getBasevmAddr())
+            if guest.basevm_os_type in ('windows.7'):
+                add_gw_str= "route delete 0.0.0.0 mask 0.0.0.0"
+                command = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{0} \"{1}\"\n".format(guest.getBasevmAddr(), add_gw_str)
+                add_gw_str= "route add 0.0.0.0 mask 0.0.0.0 192.168.122.1"
+                command += "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{0} \"{1}\"\n".format(guest.getBasevmAddr(), add_gw_str)
+            elif guest.basevm_os_type in ('centos.7'):
+                command = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{0} route add default gw 192.168.122.1".format(guest.getBasevmAddr())
             if DEBUG:
                 print command
             self.os_system(self.creation_log_file, command)
@@ -1178,6 +1199,15 @@ class CyberRangeCreation():
         if DEBUG:
             print "Post-cloning programs are installed"
 
+        ######### Logout root account for windows ##########
+        for host in self.clone_setting.getCloneHostList():
+            for instance in host.getInstanceList():
+                for clone_guest in instance.getCloneGuestList():
+                    if clone_guest.getOsType().find("windows")!=-1:
+                        print "* INFO: logout root account for windows"
+                        command = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{0} tsdiscon 1".format(clone_guest.getNicAddrDict()["eth0"])
+                        self.os_system(self.creation_log_file, command)
+
         #####################################################################
         # Decide the creation process succeeds by checking return values of 
         # system calls in RESPONSE_LIST.
@@ -1248,26 +1278,27 @@ class CyberRangeCreation():
         print "-------------------------------------------------------------------------"
 
     # Handle execution error
-    def handle_error(self):
+    def handle_error(self, is_fatal=True):
 
-        try:
-            # Write status if file name is provided
-            if self.creation_status_file:
-                with open(self.creation_status_file, "w") as status:
-                    status.write("FAILURE\n")
-                    self.global_log_message += "Creation result: FAILURE\n"
+        if not is_fatal:
+            try:
+                # Write status if file name is provided
+                if self.creation_status_file:
+                    with open(self.creation_status_file, "w") as status:
+                        status.write("FAILURE\n")
+                        self.global_log_message += "Creation result: FAILURE\n"
 
-            # Write log if file name is provided
-            if self.global_log_file:
-                with open(self.global_log_file, "a") as cr_log:
-                    fcntl.flock(cr_log, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    cr_log.write(self.global_log_message)
-                    fcntl.flock(cr_log, fcntl.LOCK_UN)
-        except IOError, e:
-            print "* ERROR: cyris: IOError:", e
+                # Write log if file name is provided
+                if self.global_log_file:
+                    with open(self.global_log_file, "a") as cr_log:
+                        fcntl.flock(cr_log, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        cr_log.write(self.global_log_message)
+                        fcntl.flock(cr_log, fcntl.LOCK_UN)
+            except IOError, e:
+                print "* ERROR: cyris: IOError:", e
 
         # Only run the command below if the running ipaddress file exists
-        if os.path.isfile(self.cur_running_ipaddr_file):
+        if not is_fatal and os.path.isfile(self.cur_running_ipaddr_file):
             erase_command = ""
             # Remove temporary address from file
             for guest in self.guests:
@@ -1275,7 +1306,7 @@ class CyberRangeCreation():
             self.os_system(self.creation_log_file, erase_command)
 
         # Destroy cyber range if needed
-        if DESTROY_ON_ERROR:
+        if not is_fatal and DESTROY_ON_ERROR:
             print "* INFO: cyris: Execution error => try to destroy cyber range and clean up."
 
             # Try to destroy the cyber range by either executing the

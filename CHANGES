@@ -1,3 +1,9 @@
+CyRIS v1.1
+----------
+* Introduce basevm_os_type; it makes support for WINDOWS in guest VM
+* Fix a bug arround multi-arguments in execute_proram task 
+* Other minor improvements and bug fixes
+
 CyRIS v1.0
 ----------
 * Modified the settings of the sample base VM to make it easier

@@ -182,6 +182,10 @@ def check_description(filename, abspath):
             else:
                 guest_keys.remove(Storyboard.BASEVM_TYPE)
 
+            # BASEVM_OS_TYPE tag (optional)
+            if Storyboard.BASEVM_OS_TYPE in guest_keys:
+                guest_keys.remove(Storyboard.BASEVM_OS_TYPE)
+
             # TASKS tag
             if Storyboard.TASKS in guest_keys:
                 for task in guest[Storyboard.TASKS]:

@@ -13,20 +13,25 @@ ABSPATH=$4
 BRIDGE_ID_STR=$5
 ADDR_STR=$6
 
+echo -e "\n* Enter VM cloning script 'vm_clone_xml.sh'"
+
 # Create addr list for network interfaces
 IFS="," read -r -a ADDR_LIST <<< "${ADDR_STR}"
 # Create bridge_id for network interfaces
 IFS="," read -r -a BRIDGE_ID_LIST <<< "${BRIDGE_ID_STR}"
 
-# Check if the config files has been existed
+# Remove the previous config file if it's still present
 if [ -e ${ABSPATH}images/${VM_ID}_config.xml ];
 then
     rm ${ABSPATH}images/${VM_ID}_config.xml;
 fi
 
+echo "** Create disk image '${VM_ID}_img' for the cloned VM"
 # Create overlay image from base image
 qemu-img create -b ${ABSPATH}${IMAGE_NAME} -f qcow2 ${ABSPATH}images/${VM_ID}_img
+sudo chown libvirt-qemu: ${ABSPATH}images/${VM_ID}_img
 
+echo "** Create XML config file '${VM_ID}_config.xml' for the cloned VM"
 # Create XML config file for starting new VM
 echo "<domain type='kvm'>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "  <name>${VM_ID}</name>" >> ${ABSPATH}images/${VM_ID}_config.xml;
@@ -89,7 +94,11 @@ echo "    </memballoon>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "  </devices>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "</domain>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 
-sudo chown libvirt-qemu: ${ABSPATH}images/${VM_ID}_img
+echo "** Define the cloned VM using config file '${VM_ID}_config.xml'"
 virsh define ${ABSPATH}images/${VM_ID}_config.xml
-sleep 0.5
+
+echo "** Start the cloned VM '${VM_ID}'"
+sleep 1
 virsh start ${VM_ID}
+
+echo -e "* Exit VM cloning script 'vm_clone_xml.sh'\n"

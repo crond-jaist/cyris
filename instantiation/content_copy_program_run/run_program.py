@@ -3,13 +3,16 @@
 #import os
 import sys
 import subprocess
+import urllib
 
 PROGRAM = sys.argv[1]
 COMPILER = sys.argv[2]
-ARGS = sys.argv[3]
+#ARGS = sys.argv[3]
+ARGS = urllib.unquote(sys.argv[3])
 IMAGE_ADDR = sys.argv[4]
 IMAGE_PASSWD = sys.argv[5]
 LOG_FILE = sys.argv[6]
+OS_TYPE=sys.argv[7]
 
 # this program is for executing outside program on cyber range
 class RunProgram():
@@ -34,6 +37,8 @@ class RunProgram():
             program_compiler = "python"
         if COMPILER == "ruby":
             program_compiler = "ruby"
+        if COMPILER == "powershell":
+            program_compiler = "powershell"
         # process args
         if ARGS == "none":
             program_args = ""
@@ -44,7 +49,10 @@ class RunProgram():
 #        self.execute_command(command)
 #        print command
         # execute program on virtual machine
-        command = "sshpass -p {0} ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{1} {2} {3} {4}".format(IMAGE_PASSWD, IMAGE_ADDR, program_compiler, PROGRAM, program_args)
+        if OS_TYPE=="windows.7":
+            command = "sshpass -p {0} ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{1} {2} \"{3}\" {4}".format(IMAGE_PASSWD, IMAGE_ADDR, program_compiler, PROGRAM, program_args)
+        else:
+            command = "sshpass -p {0} ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{1} {2} {3} {4}".format(IMAGE_PASSWD, IMAGE_ADDR, program_compiler, PROGRAM, program_args)
         self.execute_command(command)
         print command
 

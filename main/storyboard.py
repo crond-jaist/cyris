@@ -15,6 +15,7 @@ class Storyboard:
     BASEVM_HOST = "basevm_host"
     BASEVM_CONFIG_FILE = "basevm_config_file"
     BASEVM_TYPE = "basevm_type"
+    BASEVM_OS_TYPE = "basevm_os_type"
     TASKS = "tasks"
 
     ADD_ACCOUNT = "add_account"
