@@ -37,6 +37,12 @@ sudo apt-get install python-scapy
 # 11. Install sendemail
 sudo apt-get install sendemail
 
+# TDG: 11.1 Install ifupdown
+sudo apt install ifupdown
+
+# TDG: 11.2 Install bridge-utils
+sudo apt-get install -y bridge-utils
+
 # 12. ssh-copy-id to itself and other hosts.
 ssh-copy-id localhost
 

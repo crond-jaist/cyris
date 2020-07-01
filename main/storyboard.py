@@ -1,6 +1,6 @@
 class Storyboard:
     # Constants regarding the input file
-    ## Host settings
+    # Host settings
     HOST_SETTINGS = "host_settings"
     ID = "id"
     MGMT_ADDR = "mgmt_addr"
@@ -8,7 +8,7 @@ class Storyboard:
     ACCOUNT = "account"
     NOT_AVAIL = "N/A"
 
-    ## Guest settings
+    # Guest settings
     GUEST_SETTINGS = "guest_settings"
     ID4GUEST = "id"
     IP_ADDR = "ip_addr"
@@ -32,7 +32,7 @@ class Storyboard:
     VERSION = "version"
 
     EMULATE_ATTACK = "emulate_attack"
-    ATTACK_TYPE ="attack_type"
+    ATTACK_TYPE = "attack_type"
     TARGET_ACCOUNT = "target_account"
     ATTEMPT_NUMBER = "attempt_number"
     ATTACK_TIME = "attack_time"
@@ -52,7 +52,7 @@ class Storyboard:
     MODE = "mode"
     DUMMY_CALCULATION = "dummy_calculation"
     PORT_LISTENING = "port_listening"
-    CPU_UTILIZATION ="cpu_utilization"
+    CPU_UTILIZATION = "cpu_utilization"
     PORT = "port"
 
     COPY_CONTENT = "copy_content"
@@ -61,14 +61,14 @@ class Storyboard:
 
     EXECUTE_PROGRAM = "execute_program"
     PROGRAM = "program"
-    ARGS ="args"
+    ARGS = "args"
     INTERPRETER = "interpreter"
     EXECUTE_TIME = "execute_time"
 
     FIREWALL_RULES = "firewall_rules"
     RULE = "rule"
 
-    ## Clone settings
+    # Clone settings
     CLONE_SETTINGS = "clone_settings"
     RANGE_ID = "range_id"
     HOSTS = "hosts"
@@ -79,7 +79,7 @@ class Storyboard:
     NUMBER = "number"
     ENTRY_POINT = "entry_point"
     FORWARDING_RULES = "forwarding_rules"
-    #RULE = "rule" # Also defined in guests...
+    # RULE = "rule" # Also defined in guests...
     TOPOLOGY = "topology"
     TYPE = "type"
     NETWORKS = "networks"

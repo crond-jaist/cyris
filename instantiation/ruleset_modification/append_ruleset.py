@@ -6,6 +6,7 @@ import sys
 RULESET_FILE = sys.argv[1]
 IPCONFIGS_TEMP = sys.argv[2]
 
+
 class AppendRuleset():
     def readRuleset(self):
         list_rules = []
@@ -16,13 +17,12 @@ class AppendRuleset():
 
     def appendRuleset(self):
         list_rules = self.readRuleset()
-        
+
         with open(IPCONFIGS_TEMP, "a") as f:
             for rule in list_rules:
                 f.write(rule)
             f.write("COMMIT\n")
 
+
 appendRuleset = AppendRuleset()
 appendRuleset.appendRuleset()
-
-

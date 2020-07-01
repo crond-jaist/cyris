@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 id="cr${1}_"
 dir=${2}

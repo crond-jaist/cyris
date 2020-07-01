@@ -28,14 +28,16 @@ fi
 
 echo "** Create disk image '${VM_ID}_img' for the cloned VM"
 # Create overlay image from base image
-qemu-img create -b ${ABSPATH}${IMAGE_NAME} -f qcow2 ${ABSPATH}images/${VM_ID}_img
+echo "qemu-img create -b ${ABSPATH}${IMAGE_NAME} -f qcow2 -F qcow2 ${ABSPATH}images/${VM_ID}_img"
+rm -f ${ABSPATH}images/${VM_ID}_img
+qemu-img create -b ${ABSPATH}${IMAGE_NAME} -f qcow2 -F qcow2 ${ABSPATH}images/${VM_ID}_img
 sudo chown libvirt-qemu: ${ABSPATH}images/${VM_ID}_img
 
 echo "** Create XML config file '${VM_ID}_config.xml' for the cloned VM"
 # Create XML config file for starting new VM
 echo "<domain type='kvm'>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "  <name>${VM_ID}</name>" >> ${ABSPATH}images/${VM_ID}_config.xml;
-echo "  <memory>1024000</memory>" >> ${ABSPATH}images/${VM_ID}_config.xml;
+echo "  <memory>3400000</memory>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "  <vcpu>1</vcpu>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "  <os>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "    <type arch='x86_64'>hvm</type>" >> ${ABSPATH}images/${VM_ID}_config.xml;
@@ -57,6 +59,11 @@ echo "      <driver name='qemu' type='qcow2'/>" >> ${ABSPATH}images/${VM_ID}_con
 echo "      <source file='${ABSPATH}images/${VM_ID}_img'/>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "      <target dev='hda' bus='ide'/>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "      <address type='drive' controller='0' bus='0' unit='0'/>" >> ${ABSPATH}images/${VM_ID}_config.xml;
+#echo "      <backingStore>" >> ${ABSPATH}images/${VM_ID}_config.xml;
+## <source file='/home/cyuser/cyris/cyber_range/123/images/desktop_cr123_1_1_img'/>
+#echo "           <format type='qcow2'/> " >> ${ABSPATH}images/${VM_ID}_config.xml;
+#echo "           <source file='${ABSPATH}${IMAGE_NAME}'/> " >> ${ABSPATH}images/${VM_ID}_config.xml;
+#echo "      </backingStore>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "    </disk>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "    <controller type='ide' index='0'>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x1'/>" >> ${ABSPATH}images/${VM_ID}_config.xml;
@@ -95,10 +102,20 @@ echo "  </devices>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "</domain>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 
 echo "** Define the cloned VM using config file '${VM_ID}_config.xml'"
+echo "> virsh undefine ${VM_ID}"
+virsh undefine ${VM_ID}
+
+echo "TDG: ** Restart libvirt so that bridge configuration is applied **"
+echo "> sudo systemctl restart libvirtd"
+sudo systemctl restart libvirtd
+
+echo "> virsh define ${ABSPATH}images/${VM_ID}_config.xml"
 virsh define ${ABSPATH}images/${VM_ID}_config.xml
 
 echo "** Start the cloned VM '${VM_ID}'"
-sleep 1
+echo "virsh start ${VM_ID}"
 virsh start ${VM_ID}
+sleep 1
+
 
 echo -e "* Exit VM cloning script 'vm_clone_xml.sh'\n"

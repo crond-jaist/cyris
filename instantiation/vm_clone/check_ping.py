@@ -3,6 +3,7 @@
 import os
 import sys
 
+
 def check_ping(addr):
 
     return_value = os.system("ping -c 1 " + addr)
@@ -20,16 +21,15 @@ try:
     with open(addr_file) as f:
         addr_list = f.readlines()
 except IOError:
-    print "Could not read file:", addr_file
+    print("Could not read file:", addr_file)
 for addr in addr_list:
     addr = addr.rstrip("\n")
-    print addr
+    print(addr)
     if not addr:
-        print "WARNING: Address to ping is empty."
+        print("WARNING: Address to ping is empty.")
         continue
     while True:
         status = check_ping(addr)
         if status == 1:
-            print addr," connectable"
+            print(addr, " connectable")
             break
-
