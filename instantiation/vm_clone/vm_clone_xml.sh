@@ -107,7 +107,7 @@ virsh undefine ${VM_ID}
 
 echo "TDG: ** Restart libvirt so that bridge configuration is applied **"
 echo "> sudo systemctl restart libvirtd"
-sudo systemctl restart libvirtd
+sudo systemctl restart libvirtd; 
 
 echo "> virsh define ${ABSPATH}images/${VM_ID}_config.xml"
 virsh define ${ABSPATH}images/${VM_ID}_config.xml

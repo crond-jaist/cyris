@@ -548,18 +548,19 @@ class CloneInstance(object):
                     src_ip_str = ",".join(src_ip_list[:])
                     dst_ip_str = ",".join(dst_ip_list[:])
                     if sport != "" and dport != "":
-                        fw_rule = "iptables -A FORWARD -m state -p all -s {0} -d {1} {2} --sport {3} --dport {4} --state NEW,ESTABLISHED,RELATED -j ACCEPT".format(
+                        fw_rule = "iptables -A FORWARD -m state -p **PROTOCOL** -s {0} -d {1} {2} --sport {3} --dport {4} --state NEW,ESTABLISHED,RELATED -j ACCEPT".format(
                             src_ip_str, dst_ip_str, multiport, sport, dport)
                     elif sport != "" and dport == "":
-                        fw_rule = "iptables -A FORWARD -m state -p all -s {0} -d {1} --sport {2} --state NEW,ESTABLISHED,RELATED -j ACCEPT".format(
+                        fw_rule = "iptables -A FORWARD -m state -p **PROTOCOL** -s {0} -d {1} --sport {2} --state NEW,ESTABLISHED,RELATED -j ACCEPT".format(
                             src_ip_str, dst_ip_str, sport)
                     elif sport == "" and dport != "":
-                        fw_rule = "iptables -A FORWARD -m state -p all -s {0} -d {1} {2} --dport {3} --state NEW,ESTABLISHED,RELATED -j ACCEPT".format(
+                        fw_rule = "iptables -A FORWARD -m state -p **PROTOCOL** -s {0} -d {1} {2} --dport {3} --state NEW,ESTABLISHED,RELATED -j ACCEPT".format(
                             src_ip_str, dst_ip_str, multiport, dport)
                     else:
-                        fw_rule = "iptables -A FORWARD -m state -p all -s {0} -d {1} --state NEW,ESTABLISHED,RELATED -j ACCEPT".format(
+                        fw_rule = "iptables -A FORWARD -m state -p **PROTOCOL** -s {0} -d {1} --state NEW,ESTABLISHED,RELATED -j ACCEPT".format(
                             src_ip_str, dst_ip_str)
-                    fwrule_list.append(fw_rule)
+                    fwrule_list.append(fw_rule.replace("**PROTOCOL**", "tcp"))
+                    fwrule_list.append(fw_rule.replace("**PROTOCOL**", "udp"))
                 # Append the final rules as allowing all allowed traffic above
                 # comming back.
                 if len(fwrule_list) != 0:
