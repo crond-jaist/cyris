@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 #############################################################################
 # Range cleanup program
@@ -11,7 +11,9 @@ import logging
 
 import parse_config
 
-logging.basicConfig(level=logging.INFO, format='* %(levelname)s: %(filename)s: %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='* %(levelname)s: %(filename)s: %(message)s')
 
 
 # Default values for the essential parameters
@@ -26,10 +28,13 @@ DESTRUCTION_SCRIPT2 = "destruct_cyberrange.sh"          # Not used yet
 
 # Try to call the range destruction script prepared by CyRIS
 # Return True on success, False on failure, or if the script does not exist
+
+
 def range_destruction(range_id, range_path):
 
     # Create the full name of the destruction script
-    destruction_script_full = "{0}{1}/{2}".format(range_path, range_id, DESTRUCTION_SCRIPT1)
+    destruction_script_full = "{0}{1}/{2}".format(
+        range_path, range_id, DESTRUCTION_SCRIPT1)
     if os.path.isfile(destruction_script_full):
         # Try to call the script
         logging.debug("Use destruction script: " + destruction_script_full)
@@ -52,6 +57,8 @@ def range_destruction(range_id, range_path):
     return False
 
 # Forceful cleanup of storage (relevant files and directories)
+
+
 def storage_cleanup(range_id, cyris_path, range_path):
 
     # Create the range directory name
@@ -63,26 +70,34 @@ def storage_cleanup(range_id, cyris_path, range_path):
     subprocess.call(["rm", "-rf", range_dir])
 
     # TODO: clean up special files in settings: 123pssh.txt, etc.
-    pscp_filename = "{0}{1}{2}pscp_host.txt".format(cyris_path, SETTINGS_DIR, range_id) 
-    pssh_filename = "{0}{1}{2}pssh_host.txt".format(cyris_path, SETTINGS_DIR, range_id)
-    logging.info("Clean up range host files: " + pscp_filename + " and " + pssh_filename)
+    pscp_filename = "{0}{1}{2}pscp_host.txt".format(
+        cyris_path, SETTINGS_DIR, range_id)
+    pssh_filename = "{0}{1}{2}pssh_host.txt".format(
+        cyris_path, SETTINGS_DIR, range_id)
+    logging.info(
+        "Clean up range host files: " +
+        pscp_filename +
+        " and " +
+        pssh_filename)
     subprocess.call(["rm", "-f", pscp_filename])
     subprocess.call(["rm", "-f", pssh_filename])
-    
+
 # Forceful cleanup via KVM virsh
+
+
 def kvm_cleanup(range_id):
 
     range_string = "_cr{}_".format(range_id)
-    command = "virsh list --all"
-    output = subprocess.check_output(command, shell=True)
+    command = ["virsh", "list", "--all"]
+    output = subprocess.check_output(command)
     lines = output.splitlines()
     cleanup_done = False
     logging.info("Clean up KVM domains containing 'cr{}'.".format(range_id))
     for line in lines:
-        if range_string in line:
+        if range_string.encode("ascii") in line:
             fields = line.split()
             for field in fields:
-                if range_string in field:
+                if range_string.encode("ascii") in field:
                     cleanup_done = True
                     subprocess.call(["virsh", "destroy", field])
                     subprocess.call(["virsh", "undefine", field])
@@ -91,19 +106,24 @@ def kvm_cleanup(range_id):
         logging.warning("No relevant KVM domains found.")
 
 # Forceful network cleanup
+
+
 def network_cleanup(range_id):
     logging.info("Clean up bridges containing 'br{}'.".format(range_id))
 
-    # TODO: Use ifconfig to determine all bridge names that start with br{range_id}
+    # TODO: Use ifconfig to determine all bridge names that start with
+    # br{range_id}
     bridge_name = "br{}-1-1".format(range_id)
 
     try:
         # Shut down bridge
-        ifdown_command = "sudo ifconfig {} down".format(bridge_name)
-        output = subprocess.check_output(ifdown_command, shell=True, stderr=subprocess.STDOUT)
+        ifdown_command = ["sudo", "ifconfig", bridge_name, "down"]
+        _ = subprocess.check_output(
+            ifdown_command, stderr=subprocess.STDOUT)
         # Delete bridge
-        brctl_command = "sudo brctl delbr {}".format(bridge_name)
-        output = subprocess.check_output(brctl_command, shell=True, stderr=subprocess.STDOUT)
+        brctl_command = ["sudo","brctl","delbr", bridge_name]
+        _ = subprocess.check_output(
+            brctl_command, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as error:
         logging.warning("Error when removing bridge {}.\n  Error message: {}"
                         .format(bridge_name, error.output.rstrip()))
@@ -122,7 +142,8 @@ def main(argv):
         if len(argv) >= 2:
             # Second argument (if exists) is config file name
             config_file = argv[1]
-            cyris_path_parsed, range_path_parsed, p2, p3, p4, p5, p6 = parse_config.parse_config(config_file)
+            cyris_path_parsed, range_path_parsed, p2, p3, p4, p5, p6 = parse_config.parse_config(
+                config_file)
             if cyris_path_parsed:
                 cyris_path = cyris_path_parsed
             if range_path_parsed:
@@ -149,6 +170,7 @@ def main(argv):
         kvm_cleanup(range_id)
         logging.debug("- Clean up network settings")
         network_cleanup(range_id)
+
 
 if __name__ == '__main__':
     main(sys.argv[1:])

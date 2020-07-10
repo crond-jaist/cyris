@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import ConfigParser
+import configparser
 import logging
 import os.path
 
@@ -9,6 +9,7 @@ from storyboard import Storyboard
 ##################################################################
 # Function for parsing parameters provided in CONFIG file
 ##################################################################
+
 
 def parse_config(config_file):
 
@@ -23,7 +24,7 @@ def parse_config(config_file):
     if os.path.exists(config_file):
 
         # Create object and read config file
-        config = ConfigParser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
 
         # Process the options

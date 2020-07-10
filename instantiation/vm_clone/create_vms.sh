@@ -1,3 +1,4 @@
+#!/bin/bash
 # This script is to create new virtual machines from the image base by running scripts in xml folder.
 
 HOST_ID=$1
