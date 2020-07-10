@@ -59,11 +59,6 @@ echo "      <driver name='qemu' type='qcow2'/>" >> ${ABSPATH}images/${VM_ID}_con
 echo "      <source file='${ABSPATH}images/${VM_ID}_img'/>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "      <target dev='hda' bus='ide'/>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "      <address type='drive' controller='0' bus='0' unit='0'/>" >> ${ABSPATH}images/${VM_ID}_config.xml;
-#echo "      <backingStore>" >> ${ABSPATH}images/${VM_ID}_config.xml;
-## <source file='/home/cyuser/cyris/cyber_range/123/images/desktop_cr123_1_1_img'/>
-#echo "           <format type='qcow2'/> " >> ${ABSPATH}images/${VM_ID}_config.xml;
-#echo "           <source file='${ABSPATH}${IMAGE_NAME}'/> " >> ${ABSPATH}images/${VM_ID}_config.xml;
-#echo "      </backingStore>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "    </disk>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "    <controller type='ide' index='0'>" >> ${ABSPATH}images/${VM_ID}_config.xml;
 echo "      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x1'/>" >> ${ABSPATH}images/${VM_ID}_config.xml;
@@ -105,7 +100,7 @@ echo "** Define the cloned VM using config file '${VM_ID}_config.xml'"
 echo "> virsh undefine ${VM_ID}"
 virsh undefine ${VM_ID}
 
-echo "TDG: ** Restart libvirt so that bridge configuration is applied **"
+echo "** Restart libvirt so that bridge configuration is applied"
 echo "> sudo systemctl restart libvirtd"
 sudo systemctl restart libvirtd; 
 
