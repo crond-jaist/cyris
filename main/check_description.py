@@ -6,6 +6,10 @@ import re
 
 from storyboard import Storyboard
 
+# List of range ids that are forbidden to use:
+# * 127 => overlap with loopback address if used for cyber range: 127.1.1.2 etc.
+FORBIDDEN_ID_LIST = {127}
+
 FLAG = True
 
 DEBUG = False
@@ -18,11 +22,16 @@ def raise_flag(error):
     else:
         pass
 
-def get_existed_cr_id_list(abspath):
+def get_existing_cr_id_list(cr_dir):
     cr_id_list = []
-    if os.path.isdir("{0}cyberrange/"):
-        for cr_id in os.listdir("{0}cyberrange/".format(abspath)):
-            cr_id_list.append(int(cr_id))
+    # Check that cyber range directory exists
+    if os.path.isdir(cr_dir):
+        # Loop for all the sub-directories inside it
+        for cr_id in os.listdir(cr_dir):
+            # Check whether the sub-directory name is made only of digits
+            if cr_id.isdigit():
+                # Add the sub-directory name to the cyber range list as integer
+                cr_id_list.append(int(cr_id))
     return cr_id_list
 
 # Determine the set of networks that appear in the forwarding rules, both as src and dst
@@ -46,7 +55,7 @@ def get_network_set(fw_rules):
 
     return nw_set
 
-def check_description(filename, abspath):
+def check_description(filename, cr_dir):
     try:
         with open(filename, "r") as f:
             doc = yaml.load(f)
@@ -86,7 +95,6 @@ def check_description(filename, abspath):
     if Storyboard.HOST_SETTINGS not in host_section.keys():
         raise_flag("Section '{0}' is missing.".format(Storyboard.HOST_SETTINGS))
     else:
-        #for index, host in enumerate(host_section[Storyboard.HOST_SETTINGS]):
         for host in host_section[Storyboard.HOST_SETTINGS]:
             
             host_id = Storyboard.NOT_AVAIL
@@ -111,7 +119,15 @@ def check_description(filename, abspath):
 
             # VIRBR_ADDR tag
             if Storyboard.VIRBR_ADDR not in host_keys:
-                raise_flag("Tag '{0}' is missing for host '{1}' in section '{2}'.".format(Storyboard.VIRBR_ADDR, host_id, Storyboard.HOST_SETTINGS))
+                # Only raise flag if the host has KVM guests defined, so we need to check this first
+                kvm_guest_defined = False
+                for guest in guest_section.get(Storyboard.GUEST_SETTINGS):
+                    if guest_section.get(Storyboard.BASEVM_HOST) == host_id and guest.get(Storyboard.BASEVM_TYPE) == "kvm":
+                        kvm_guest_defined = True
+                        break
+                # Raise flag if necessary
+                if kvm_guest_defined:
+                    raise_flag("Tag '{0}' is missing for KVM host '{1}' in section '{2}'.".format(Storyboard.VIRBR_ADDR, host_id, Storyboard.HOST_SETTINGS))
             else:
                 host_keys.remove(Storyboard.VIRBR_ADDR)
 
@@ -159,7 +175,8 @@ def check_description(filename, abspath):
 
             # BASEVM_CONFIG_FILE tag
             if Storyboard.BASEVM_CONFIG_FILE not in guest_keys:
-                raise_flag("Tag '{0}' is missing for guest '{1}' in section '{2}'.".format(Storyboard.BASEVM_CONFIG_FILE, guest_id, Storyboard.GUEST_SETTINGS))
+                if guest.get(Storyboard.BASEVM_TYPE) == "kvm":
+                    raise_flag("Tag '{0}' is missing for KVM guest '{1}' in section '{2}'.".format(Storyboard.BASEVM_CONFIG_FILE, guest_id, Storyboard.GUEST_SETTINGS))
             else:
                 config_file = guest[Storyboard.BASEVM_CONFIG_FILE]
                 # By convention, that VM disk image has same name with the config file, excluding the extension
@@ -187,7 +204,7 @@ def check_description(filename, abspath):
                 guest_keys.remove(Storyboard.BASEVM_OS_TYPE)
 
             # TASKS tag
-            if Storyboard.TASKS in guest_keys:
+            if Storyboard.TASKS in guest_keys and guest.get(Storyboard.TASKS):
                 for task in guest[Storyboard.TASKS]:
 
                     task_keys = task.keys()
@@ -447,6 +464,10 @@ def check_description(filename, abspath):
                             if Storyboard.ARGS in program_keys:
                                 program_keys.remove(Storyboard.ARGS)
 
+                            # ID tag (optional)
+                            if Storyboard.ID in program_keys:
+                                 program_keys.remove(Storyboard.ID)
+
                             # INTERPRETER tag
                             if Storyboard.INTERPRETER not in program_keys:
                                 raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.INTERPRETER, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.EXECUTE_PROGRAM, guest_id))
@@ -476,7 +497,7 @@ def check_description(filename, abspath):
                                 rule_keys.remove(Storyboard.RULE)
 
                             # Check whether there are any (unknown) tags left in the list
-                            if program_keys:
+                            if rule_keys:
                                 raise_flag("Unknown tag(s) in section '{0}', subsection '{1}' for task '{2}' of guest '{3}': {4}".format(Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.FIREWALL_RULES, guest_id, rule_keys))
 
                         task_keys.remove(Storyboard.FIREWALL_RULES)
@@ -485,6 +506,10 @@ def check_description(filename, abspath):
                     if task_keys:
                         raise_flag("Unknown tag in section '{0}', subsection '{1}': {2}".format(Storyboard.GUEST_SETTINGS, Storyboard.TASKS, task_keys))
 
+                guest_keys.remove(Storyboard.TASKS)
+
+            elif Storyboard.TASKS in guest_keys and not guest.get(Storyboard.TASKS):
+                raise_flag("Section '{0}', subsection '{1}' for guest '{2}' cannot be empty.".format(Storyboard.GUEST_SETTINGS, Storyboard.TASKS, guest_id))
                 guest_keys.remove(Storyboard.TASKS)
 
             # Check whether there are any (unknown) tags left in the list
@@ -509,9 +534,16 @@ def check_description(filename, abspath):
             raise_flag("Tag '{0}' is missing in section '{1}'.".format(Storyboard.RANGE_ID, Storyboard.CLONE_SETTINGS))
         else:
             range_id = int(clone[Storyboard.RANGE_ID])
-            cr_id_list = get_existed_cr_id_list(abspath)
+
+            # Check whether the id is forbidden to use
+            if range_id in FORBIDDEN_ID_LIST:
+                raise_flag("Range id '{0}' is forbidden to use, choose another id.".format(range_id))
+
+            # Check whether the is in use
+            cr_id_list = get_existing_cr_id_list(cr_dir)
             if range_id in cr_id_list:
-                raise_flag("Range with id '{0}' already exists. Please choose another id.".format(range_id))
+                raise_flag("Range with id '{0}' already exists, choose another id.".format(range_id))
+
             clone_keys.remove(Storyboard.RANGE_ID)
 
         # HOSTS tag

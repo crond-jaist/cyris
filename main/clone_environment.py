@@ -12,6 +12,9 @@ import paramiko
 #import subprocess
 #import string
 #import random
+import urllib
+import string
+from cyvar import CyVarBox
 
 # Internal imports
 #from entities import Host, Guest, Bridge, EntryPoint, CloneGuest, CloneSubnetwork, CloneInstance, CloneHost, CloneSetting
@@ -257,7 +260,7 @@ class VMClone(object):
 
     #########################################################################
     # Generate files for creating tunnels to entry points of each cyber range.
-    def create_tunnel_entry_account(self):
+    def create_tunnel_entry_account(self, basevm_type):
         #entry_account_list = []
         #entry_passwd_list = []
         #entry_port_list = []
@@ -301,7 +304,7 @@ class VMClone(object):
                 for instance in clone_host.getInstanceList():
                     # Create random account and passwd.
                     FULL_NAME="" # No full name setting for the trainee account
-                    command = ManageUsers(instance.getEntryPoint().getAddr(), self.abspath).add_account(instance.getEntryPoint().getAccount(), instance.getEntryPoint().getPasswd(), FULL_NAME, os_type).getCommand()
+                    command = ManageUsers(instance.getEntryPoint().getAddr(), self.abspath).add_account(instance.getEntryPoint().getAccount(), instance.getEntryPoint().getPasswd(), FULL_NAME, os_type, basevm_type).getCommand()
                     entry_file.write("{0};\n".format(command))
 
             # Write commands to destruct tunnels using tunnel names.
@@ -368,6 +371,15 @@ class VMClone(object):
                             guest_addr = guest.getNicAddrDict()["eth0"]
                             program_list = dict_guest_prg_afcln[guest.getGuestId()]
                             for program in program_list:
+                                install_file.write("TARGET=\"{0}\";".format(guest_addr))
+                                install_file.write("COMTAGPREFIX=\"{0}\";".format(guest.getMidId()))
+                                origwrap = program.command_post_clone(guest_addr).getCommand()
+                                qbox = CyVarBox()
+                                qbox.entry1("instance_index", guest.up_instance)
+                                qbox.entry1("guest_index", guest.index)
+                                qbox.entry1("trainee", instance.entry_point.getAccount())
+                                cookwrap = qbox.safe_project_URLchunks(origwrap)
+                                install_file.write("{0};\n".format(cookwrap))
                                 install_file.write("{0};\n".format(program.command_post_clone(guest_addr).getCommand()))
 
     #########################################################################

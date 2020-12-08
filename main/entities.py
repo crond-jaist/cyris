@@ -91,6 +91,9 @@ class Guest(object):
     def getBasevmAddr(self):
         return self.basevm_addr
 
+    def setBasevmAddr(self, basevm_addr):
+        self.basevm_addr = basevm_addr
+
     def getRootPasswd(self):
         return self.root_passwd
     
@@ -230,9 +233,12 @@ in the session "clone_settings" of the cyber range description. It has two varia
     @param    network_interfaces     List of network interfaces of that guest.
 '''
 class CloneGuest(object):
-    def __init__(self, guest_id, index, has_fw_setup, fwrule_desc_list, is_entry_point,os_type):
+    #def __init__(self, guest_id, index, has_fw_setup, fwrule_desc_list, is_entry_point,os_type):
+    def __init__(self, guest_id, index, instance_id, cyberrange_id, has_fw_setup, fwrule_desc_list, is_entry_point, os_type):
         self.guest_id = guest_id
         self.index = index
+        self.up_instance = instance_id
+        self.up_cyberrange = cyberrange_id
         self.nic_addr_dict = OrderedDict()
         self.nic_gw_dict = OrderedDict()
         self.gateway = ""
@@ -241,6 +247,18 @@ class CloneGuest(object):
         self.fwrule_list = []
         self.is_entry_point = is_entry_point
         self.os_type=os_type
+        self.sepchar = ","
+
+    def getFullId(self):
+        return "cr" + str(self.up_cyberrange) + self.sepchar \
+                           + "ins" + str(self.up_instance) + self.sepchar \
+                           + str(self.guest_id) + self.sepchar \
+                           + str(self.index)
+
+    def getMidId(self):
+        return "ins" + str(self.up_instance) + self.sepchar \
+               + str(self.guest_id) + self.sepchar \
+               + str(self.index)
 
     def getGuestId(self):
         return self.guest_id
@@ -624,8 +642,8 @@ class CloneSetting(object):
             clone_host.setInstanceList(self.getRangeId(), port_list)
             port_list = [port for port in port_list if port not in port_sublist]
 
-    # Write down the detailed configuration file for the range.
-    def writeConfig(self, filename):
+    # Write down the detailed configuration file for the range depending on base VM type.
+    def writeConfig(self, filename, base_vm_type):
         data = OrderedDict()
         data[Storyboard.RANGE_ID] = self.getRangeId()
         hostdict_list = []
@@ -651,9 +669,13 @@ class CloneSetting(object):
                     for i,rule in enumerate(guest.getFwRuleList()):
                         fwrule_dict['rule{0}'.format(i)] = rule
                     guest_dict[Storyboard.GUEST_ID] = guest.getGuestId()
-                    # Generate KVM domain name at this point so that we can output it
+                    # Generate KVM/AWS domain name at this point so that we can output it
+                    # TODO: Field name below should be just 'domain', but seems used in other files too
                     guest.kvm_domain = "{0}_cr{1}_{2}_{3}".format(guest.getGuestId(), self.getRangeId(), instance.getIndex(), guest.getIndex())
-                    guest_dict[Storyboard.KVM_DOMAIN] = guest.kvm_domain
+                    if base_vm_type == 'kvm':
+                        guest_dict[Storyboard.KVM_DOMAIN] = guest.kvm_domain
+                    elif base_vm_type == 'aws':
+                        guest_dict[Storyboard.AWS_DOMAIN] = guest.kvm_domain
                     guest_dict[Storyboard.IP_ADDRS] = addr_dict
                     if len(gateway_dict) != 0:
                         guest_dict[Storyboard.GATEWAYS] = gateway_dict
@@ -698,9 +720,11 @@ class CloneSetting(object):
         return networks_dict
 
 class Command(object):
-    def __init__(self, command, description):
+    #def __init__(self, command, description):
+    def __init__(self, command, description, comtag="-"):
         self.command = command
         self.description = description
+        self.comtag = comtag
 
     def getCommand(self):
         return self.command

@@ -99,6 +99,7 @@ class Storyboard:
     #GUESTS = "guests"
     #GUEST_ID = "guest_id"
     KVM_DOMAIN = "kvm_domain"
+    AWS_DOMAIN = "aws_domain"
     IP_ADDRS = "ip_addrs"
     GATEWAYS = "gateways"
     FIREWALL_RULE = "firewall_rule"
