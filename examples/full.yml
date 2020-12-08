@@ -31,7 +31,7 @@
 
 - host_settings:
   - id: host_1
-    mgmt_addr: 172.16.24.1
+    mgmt_addr: localhost
     virbr_addr: 192.168.122.1
     account: cyuser
 
@@ -46,7 +46,8 @@
 # @param    basevm_config_file    The path to the configuration file of the base image,
 #                                 for KVM to be able to define and start it.
 # @param    basevm_type           The virtualization type of the base image. Currently
-#                                 CyRIS supports only KVM virtualization.
+#                                 CyRIS supports KVM and AWS virtualization.
+# @param    basevm_os_type        The type of the base image OS (Linux, Windows, etc.).
 # @param    tasks                 The definition of all the setup tasks that CyRIS needs
 #                                 to do on the base image. Specific parameters needed for
 #                                 each kind of task are presented in the section below.
@@ -274,7 +275,7 @@
 #########################################################################################
 - clone_settings:
 
-  - range_id: 126
+  - range_id: 125
     # hosts is for specifying a list of hosts that the cyber range is deployed on.
     # @param    host_id           The ID of the host (as specified in the host_settings
     #                             section located in the beginning of this file).

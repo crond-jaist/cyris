@@ -1,31 +1,28 @@
 ---
 - host_settings:
   - id: host_1
-    mgmt_addr: 172.16.1.7
-    virbr_addr: 192.168.122.1
-    account: cyuser
-  - id: host_2
-    mgmt_addr: 172.16.1.2
+    mgmt_addr: localhost
     virbr_addr: 192.168.122.1
     account: cyuser
 
 - guest_settings:
-  - id: desktop
+  - id: windows7
     basevm_host: host_1
-    basevm_config_file: /home/cyuser/images/basevm.xml
+    basevm_config_file: /home/cyuser/images/windows7.xml
     basevm_type: kvm
+    basevm_os_type: windows.7
 
 - clone_settings:
-  - range_id: 125
+  - range_id: 123
     hosts:
-    - host_id: host_1, host_2
+    - host_id: host_1
       instance_number: 1
       guests:
-      - guest_id: desktop
+      - guest_id: windows7
         number: 1
         entry_point: yes
       topology:
       - type: custom
         networks:
         - name: office
-          members: desktop.eth0
+          members: windows7.eth0

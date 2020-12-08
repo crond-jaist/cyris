@@ -2,14 +2,13 @@
 - host_settings:
   - id: host_1
     mgmt_addr: localhost
-    virbr_addr: 192.168.122.1
     account: cyuser
 
 - guest_settings:
   - id: desktop
     basevm_host: host_1
-    basevm_config_file: /home/cyuser/images/basevm.xml
-    basevm_type: kvm
+    basevm_type: aws
+    basevm_os_type: amazon_linux
 
 - clone_settings:
   - range_id: 123

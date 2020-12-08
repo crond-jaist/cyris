@@ -4,6 +4,10 @@
     mgmt_addr: localhost
     virbr_addr: 192.168.122.1
     account: cyuser
+  - id: host_2
+    mgmt_addr: 172.16.1.2
+    virbr_addr: 192.168.122.1
+    account: cyuser
 
 - guest_settings:
   - id: desktop
@@ -14,7 +18,7 @@
 - clone_settings:
   - range_id: 123
     hosts:
-    - host_id: host_1
+    - host_id: host_1, host_2
       instance_number: 1
       guests:
       - guest_id: desktop

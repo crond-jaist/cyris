@@ -1,7 +1,7 @@
 ---
 - host_settings:
   - id: host_1
-    mgmt_addr: 172.16.1.7
+    mgmt_addr: localhost
     virbr_addr: 192.168.122.1
     account: cyuser
 
