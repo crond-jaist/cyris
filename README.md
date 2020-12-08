@@ -18,10 +18,10 @@ infrastructure.
 CyRIS is written in Python, and has various features, including system
 configuration, tool installation, incident emulation, content
 management, and clone management. If interested, please download the
-latest release and let us know if you have any issues. A sample
-virtual machine base image and
-a [User Guide](https://github.com/crond-jaist/cyris/releases/tag/1.1)
-are also provided for your convenience.
+[latest
+release](https://github.com/crond-jaist/cyris/releases/tag/1.2) and
+let us know if you have any issues. A sample virtual machine base
+image and a user guide are also provided for your convenience.
 
 The procedure for installing and configuring CyRIS is rather complex,
 therefore you should refer to the User Guide. In particular, the

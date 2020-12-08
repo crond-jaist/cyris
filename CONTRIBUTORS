@@ -4,11 +4,13 @@ Initial implementation:
   Cuong Pham
   Razvan Beuran
 
-Current maintainer:
+Current maintainers:
   Razvan Beuran
-  Masanori Sunagawa
   Ken-chi Chinen
 
 Various contributions:
-  Yuichiro Sakamoto	for WINDOWS support
-  Fumikazu Awa		for various test
+  Yuichiro Sakamoto (Windows support)
+  Fumikazu Awa (testing)
+  Masanori Sunagawa
+  Zhe Zhang (AWS support)
+  Zhenguo Hu

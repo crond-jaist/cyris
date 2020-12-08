@@ -1,7 +1,22 @@
+
+CyRIS v1.2
+----------
+* Added support for the Amazon Web Services (AWS) virtualization
+  platform in addition to KVM
+* Added example range file to illustrate the use of AWS virtualization
+* Improved the messages shown for programs run after cloning
+* Included noise PCAP files in the release, so that the
+  'emulate_traffic_capture_file' task can now be used without any
+  additional setup on the user side
+* Improved robustness of range description checking
+* Other minor improvements and bug fixes
+
 CyRIS v1.1
 ----------
-* Introduce basevm_os_type; it makes support for WINDOWS in guest VM
-* Fix a bug arround multi-arguments in execute_proram task 
+* Added support for Windows as guest VM operating system
+* Introduced the keyword 'basevm_os_type' to specify the guest VM OS
+* Fixed a bug related to providing multiple arguments in the
+  'execute_program' task
 * Other minor improvements and bug fixes
 
 CyRIS v1.0
