@@ -7,6 +7,7 @@ attacked_addr = sys.argv[1]
 username = sys.argv[2]
 number = sys.argv[3]
 time = sys.argv[4]
+basevm_type = sys.argv[5]
 
 class myThread (threading.Thread):
     def __init__(self, threadID, name):
@@ -21,7 +22,7 @@ class myThread (threading.Thread):
             self.assign_number = int(number)/5
         else:
             self.assign_number = int(number) - (int(number)/5)*4
-        
+
         for i in range(0, self.assign_number):
             try:
                 response = ssh_connect()
@@ -50,7 +51,10 @@ def ssh_connect():
 
 # Set system date as the same as input
 if time != "none":
-    os.system("ssh root@{0} date +%Y%m%d -s {1}".format(attacked_addr, time))
+    if basevm_type == 'kvm':
+        os.system("ssh root@{0} date +%Y%m%d -s {1}".format(attacked_addr, time))
+    elif basevm_type == 'aws':
+        os.system("ssh -i TESTKEY.pem ec2-user@{0} date +%Y%m%d -s {1}".format(attacked_addr, time))
 
 # Create new threads
 thread1 = myThread(1, "Thread-1")
@@ -75,8 +79,15 @@ thread5.join()
 
 # Set system date to the correct value.
 if time != "none":
-    correct_date = subprocess.check_output("date +%Y%m%d", shell=True)
-    correct_time = subprocess.check_output("date +%T", shell=True)
-    os.system("ssh root@{0} date +%Y%m%d -s {1}".format(attacked_addr, correct_date))
-    os.system("ssh root@{0} date +%T -s {1}".format(attacked_addr, correct_time))
-    os.system("ssh root@{0} sort --stable --reverse --key=1,2 /var/log/secure -o /var/log/secure".format(attacked_addr))
+    if basevm_type == 'kvm':
+        correct_date = subprocess.check_output("date +%Y%m%d", shell=True)
+        correct_time = subprocess.check_output("date +%T", shell=True)
+        os.system("ssh root@{0} date +%Y%m%d -s {1}".format(attacked_addr, correct_date))
+        os.system("ssh root@{0} date +%T -s {1}".format(attacked_addr, correct_time))
+        os.system("ssh root@{0} sort --stable --reverse --key=1,2 /var/log/secure -o /var/log/secure".format(attacked_addr))
+    elif basevm_type == 'aws':
+        correct_date = subprocess.check_output("date +%Y%m%d", shell=True)
+        correct_time = subprocess.check_output("date +%T", shell=True)
+        os.system("ssh -i TESTKEY.pem ec2-user@{0} date +%Y%m%d -s {1}".format(attacked_addr, correct_date))
+        os.system("ssh -i TESTKEY.pem ec2-user@{0} date +%T -s {1}".format(attacked_addr, correct_time))
+        os.system("ssh -i TESTKEY.pem ec2-user@{0} sort --stable --reverse --key=1,2 /var/log/secure -o /var/log/secure".format(attacked_addr))

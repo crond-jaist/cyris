@@ -5,7 +5,7 @@
 src=$1
 dst=$2
 image_addr=$3
-image_passwd="theroot"
+image_passwd=$4
 
 # check if the dst directory exists
 dir_exist=`sshpass -p ${image_passwd} ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@${image_addr} "powershell Test-Path ${dst}"`

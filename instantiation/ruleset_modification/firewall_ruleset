@@ -18,10 +18,6 @@
 -A OUTPUT -o eth0 -p tcp --dport 443 -m state --state NEW,ESTABLISHED -j ACCEPT
 -A INPUT -i eth0 -p tcp --sport 443 -m state --state ESTABLISHED -j ACCEPT
 
-# Allow ALL outgoing HTTP
--A OUTPUT -o eth0 -p tcp --dport 443 -m state --state NEW,ESTABLISHED -j ACCEPT
--A INPUT -i eth0 -p tcp --sport 443 -m state --state ESTABLISHED -j ACCEPT
-
 # Allow outgoing DNS connections
 -A OUTPUT -p udp -o eth0 --dport 53 -j ACCEPT
 -A INPUT -p udp -i eth0 --sport 53 -j ACCEPT
