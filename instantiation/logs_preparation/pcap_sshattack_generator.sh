@@ -9,8 +9,9 @@ attack_source=$6
 num=$7
 noise_level=$8
 file_path=$9
-file_name=${10} 
+file_name=${10}
 cr_dir=${11}
+basevm_type=${12}
 
 inst_dir="instantiation"
 
@@ -19,7 +20,7 @@ sudo bash -c "exec -a virbr0_ssh_pcap tcpdump -i virbr0 -w ${cr_dir}virbr0_ssh.p
 
 # base image starts attacking the host by ssh
 sshpass -p ${image_passwd} scp ${abs_path}${inst_dir}/attacks_emulation/attack_paramiko_ssh.py root@${image_addr}:/bin/cyberrange/;
-sshpass -p ${image_passwd} ssh -o StrictHostKeyChecking=no root@${image_addr} "python /bin/cyberrange/attack_paramiko_ssh.py ${virbr_addr} ${host_account} ${num} none";
+sshpass -p ${image_passwd} ssh -o StrictHostKeyChecking=no root@${image_addr} "python /bin/cyberrange/attack_paramiko_ssh.py ${virbr_addr} ${host_account} ${num} none ${basevm_type}";
 
 sudo pkill -f virbr0_ssh_pcap;
 

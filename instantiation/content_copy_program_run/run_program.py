@@ -31,15 +31,10 @@ class RunProgram():
             myfile.write("\n")     # separate following outputs
         # Waiting for a return code would not allow background execution, so we don't do it
 
-    # get name of the program from the string PROGRAM provided by users from cyber range definition file
-    #def getProgramName(self):
-    #    list_elements = PROGRAM.split("/")
-    #    return list_elements[-1]
-
     # execute commands to run the program on cyber range
     def runProgram(self):
-        #program_name = self.getProgramName()
         program_compiler = ""
+
         # get the appropriate compiler
         if COMPILER == "python":
             program_compiler = "python"
@@ -54,20 +49,14 @@ class RunProgram():
             program_args = ""
         else:
             program_args = ARGS
-        # copy program to /bin/cyberrange of virtual machine
-#        command = "sshpass -p {0} scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no {1} root@{2}:/bin/cyberrange".format(IMAGE_PASSWD, PROGRAM, IMAGE_ADDR)
-#        self.execute_command(command)
-#        print command
+
         # execute program on virtual machine
         defined_aws_version = ["amazon_linux", "amazon_linux2", "red_hat", "ubuntu_16", "ubuntu_18", "ubuntu_20"]
         if OS_TYPE=="windows.7":
             command = "sshpass -p {0} ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{1} {2} \"{3}\" {4}".format(IMAGE_PASSWD, IMAGE_ADDR, program_compiler, PROGRAM, program_args)
         elif OS_TYPE in defined_aws_version:
-            command = "sshpass -p {0} scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no {1} ec2-user@{2}:".format(IMAGE_PASSWD, PROGRAM, IMAGE_ADDR)
-            command = "sshpass -p {0} ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ec2-user@{1} 'sudo mkdir -p /bin/cyberrange/database/penetration_testing; sudo mv install_sl.sh /bin/cyberrange/database/penetration_testing/'".format(IMAGE_PASSWD, IMAGE_ADDR)
             command = "sshpass -p {0} ssh -i TESTKEY.pem -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ec2-user@{1} {2} {3} {4}".format(IMAGE_PASSWD, IMAGE_ADDR, program_compiler, PROGRAM, program_args)
         else:
-            #command = "sshpass -p {0} ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{1} {2} {3} {4}".format(IMAGE_PASSWD, IMAGE_ADDR, program_compiler, PROGRAM, program_args)
             command = "sshpass -p {0} ssh -E /dev/null -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{1} {2} '{3} {4}'".format(IMAGE_PASSWD, IMAGE_ADDR, program_compiler, PROGRAM, program_args)
         self.execute_command(command)
         print command

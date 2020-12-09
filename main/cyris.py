@@ -1072,22 +1072,26 @@ class CyberRangeCreation():
         crt_host_ipaddr=socket.gethostbyname(socket.gethostname())
         if DEBUG: print("Current host IP address: " + crt_host_ipaddr)
 
+        # Create list of hosts that are to be skipped when doing scp
+        hosts_to_skip_for_scp = ["localhost", "127.0.0.1"]
+        hosts_to_skip_for_scp.append(crt_host_ipaddr)
+        if DEBUG: print("Host addresses for which to skip pscp before cloning: {}".format(hosts_to_skip_for_scp))
+
         # Open files with truncation, so that any potential incorrect value is overwritten
         with open(ssh_host_file, "w+") as pssh, open(scp_host_file, "w+") as pscp:
             for host in self.hosts:
-                if DEBUG:
-                    print host.getHostId()
-
                 # Prepare the list of hosts to which parallel scp should be done by
                 # checking whether the target is different from the current host
                 # NOTE: The CyRIS user guide says that the first host in the description file
                 # is considered to be "master host", hence one could also check if the current
-                # host is the master host, and not copy files to itself
-                if host.getMgmtAddr() != crt_host_ipaddr:
-                    logging.debug("Target '{0}' is different from current host ({1}) => do pscp".format(host.getMgmtAddr(), crt_host_ipaddr))
+                # host is the master (first) host, and not copy files to itself
+                if not host.getMgmtAddr() in hosts_to_skip_for_scp:
+                    #logging.debug("Target '{0}' is different from current host ({1}) => do pscp".format(host.getMgmtAddr(), crt_host_ipaddr))
+                    if DEBUG: print("Target '{}' ({}) is different from current host ({}) => do pscp before cloning".format(host.getHostId(), host.getMgmtAddr(), crt_host_ipaddr))
                     pscp.write("{0}:{1} {2}\n".format(host.getMgmtAddr(), 22, host.getAccount()))
                 else:
-                    logging.debug("Target '{0}' is same with current host ({1}) => skip pscp".format(host.getMgmtAddr(), crt_host_ipaddr))
+                    #logging.debug("Target '{0}' is same with current host ({1}) => skip pscp".format(host.getMgmtAddr(), crt_host_ipaddr))
+                    if DEBUG: print("Target '{}' ({}) is same with the current host ({}) => skip pscp before cloning".format(host.getHostId(), host.getMgmtAddr(), crt_host_ipaddr))
 
                 # Prepare list of hosts to which parallel ssh should be done
                 pssh.write("{0}@{1}:{2}\n".format(host.getAccount(), host.getMgmtAddr(), 22))
