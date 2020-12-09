@@ -1,10 +1,12 @@
 
 CyRIS v1.2
 ----------
+* Improved execution messages and logged information
+* Improved robustness of certain task handling by checking whether
+  specified files exist before attempting execution
 * Added support for the Amazon Web Services (AWS) virtualization
   platform in addition to KVM
 * Added example range file to illustrate the use of AWS virtualization
-* Improved the messages shown for programs run after cloning
 * Included noise PCAP files in the release, so that the
   'emulate_traffic_capture_file' task can now be used without any
   additional setup on the user side

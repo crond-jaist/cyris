@@ -1,8 +1,9 @@
+
 # CyRIS: Cyber Range Instantiation System
 
 CyRIS is a tool for facilitating cybersecurity training by automating
 the creation and management of the corresponding training environments
-(a.k.a, cyber ranges) based on a description in YAML format. CyRIS is
+(a.k.a., cyber ranges) based on a description in YAML format. CyRIS is
 being developed by the Cyber Range Organization and Design (CROND)
 NEC-endowed chair at the Japan Advanced Institute of Science and
 Technology (JAIST).
@@ -18,17 +19,18 @@ infrastructure.
 CyRIS is written in Python, and has various features, including system
 configuration, tool installation, incident emulation, content
 management, and clone management. If interested, please download the
-[latest
-release](https://github.com/crond-jaist/cyris/releases/tag/1.2) and
-let us know if you have any issues. A sample virtual machine base
+[latest release](https://github.com/crond-jaist/cyris/releases/) and
+let us know if you have any issues; a sample virtual machine base
 image and a user guide are also provided for your convenience.
 
 The procedure for installing and configuring CyRIS is rather complex,
 therefore you should refer to the User Guide. In particular, the
 following issues are to be considered:
 
-* _Hardware requirements_: Hardware vrtualization support, Internet connection (optional) -- See Section 3.1 of the User Guide.
-* _Software installation_: Host preparation, base image preparation, CyRIS configuration -- See Section 3.2 of the User Guide.
+* _Hardware requirements_: Hardware vrtualization support, Internet
+  connection (optional) -- See Section 3.1 of the User Guide.
+* _Software installation_: Host preparation, base image preparation,
+  CyRIS configuration -- See Section 3.2 of the User Guide.
 
 
 ## Quick Start
