@@ -1,11 +1,12 @@
+#!/usr/bin/python
 
 import boto3
 import time
 import sys
 
-# Can be used to assign a default AWS owner id value if the program
+# Can be used to assign a default AWS account ID if the program
 # is only used by one user
-OWNER_ID = '012345678900'
+AWS_ACCOUNT_ID = '123456789012'
 
 # Describe relevant properties of AWS instances in a client
 # Return 2 lists containing instance ids and security group names
@@ -20,14 +21,16 @@ def describe(client):
         },
     ],
     )
-    ins_ids = []
+    ins_ids = {}
     gNames = []
+    ins_names = {}
     for x in response['Reservations']:
-        ins_ids.append(x['Instances'][0]['InstanceId'])
+        ins_ids.update({x['Instances'][0]['Tags'][0]['Value']: x['Instances'][0]['InstanceId']})
+        ins_names.update({x['Instances'][0]['Tags'][0]['Value']: x['Instances'][0]['ImageId']})
         gName = x['Instances'][0]['SecurityGroups'][0]['GroupName']
         if gName not in gNames:
             gNames.append(gName)
-    return ins_ids,gNames
+    return ins_ids,gNames,ins_names
 
 # Terminate the AWS instances identified in the 'ins_ids' list
 def terminate_ins(client,ins_ids):
@@ -75,38 +78,53 @@ def get_img_id(client,img_name)
 '''
 
 # Delete all AWS images associated to an owner id 
-def del_img(client,OwnerId):
+def del_img(client,OwnerId,Image_ID):
     response = client.describe_images(
         Owners=[OwnerId]
     )
     for x in response['Images']:
-        client.deregister_image(
-            ImageId=x['ImageId']
-        )
+        for i in Image_ID:
+            if i == str(x['ImageId']):
+                client.deregister_image(
+                    ImageId=x['ImageId']
+                )
 
 # Main function of the program
 def main(argv):
 
-    # Initialize with default value
-    owner_id = OWNER_ID
+    # Initialize the AWS account ID with a default value
+    aws_account_id = AWS_ACCOUNT_ID
+    image_names = []
+    image_id = []
+    security_name = []
 
-    # Get owner id from the first command-line argument (if provided)
+    # Get the AWS account ID from the first command-line argument (if provided)
     if len(argv) >= 1:
-        owner_id = argv[0]
+        aws_account_id = argv[0]
+        for input_name in argv[1:]:
+            image_names.append('cr' + input_name)
+            security_name.append('cr' + input_name + '-sg' )
 
     print('* Clean up the AWS cyber range...')
     client = boto3.client('ec2', region_name='us-east-1')
-    ins_ids, gNames = describe(client)
+    ins_ids, gNames, ins_names = describe(client)
+
+    print(ins_ids.keys())
+    for i in ins_names.items():
+        for j in image_names:
+            if j in i[0]:
+                image_id.append(i[1])
 
     print('* Terminate instances...')
-    terminate_ins(client, ins_ids)
+    terminate_ins(client, ins_ids.values())
 
     print('* Delete security groups...')
     for gName in gNames:
-        delete_SG(client, gName)
+        if gName in security_name:
+            delete_SG(client, gName)
 
     print('* Deregister AMIs...')
-    del_img(client, owner_id)
+    del_img(client, aws_account_id, image_id)
     print('* AWS clean up completed.')
 
 if __name__ == '__main__':

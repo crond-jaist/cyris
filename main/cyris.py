@@ -1178,7 +1178,7 @@ class CyberRangeCreation():
 	    client = boto3.client('ec2', region_name='us-east-1')
 
 	    # create a security group
-	    gName = 'cr01-sg' # example
+	    gName = gName = 'cr' + str(self.range_id) + '-sg'
 	    status = create_security_group(client, gName)
 	    print(status)
 
@@ -1187,7 +1187,7 @@ class CyberRangeCreation():
 
 	    # describe_security_groups get
             gNames = []
-            gNames.append(gName) # example:['cr01-sg']
+            gNames.append(gName)
 
             r = describe_security_groups(client, gNames)
             ipPermissions = r['SecurityGroups'][0]['IpPermissions']
