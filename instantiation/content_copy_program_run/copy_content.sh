@@ -24,7 +24,7 @@ if [ ${basevm_type} = "kvm" ]; then
         ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@${image_addr} "mkdir -p ${dst}"
     fi
     # copy content from src to dst
-    scp  -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -r ${src} root@${image_addr}:${dst}
+    scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -r ${src} root@${image_addr}:${dst}
 elif [ ${basevm_type} = "aws" ]; then
     if [ ${os_type} = "red_hat" -o ${os_type} = "amazon_linux" -o ${os_type} = "amazon_linux2" ]; then
         if (ssh -i TESTKEY.pem -o StrictHostKeyChecking=no ec2-user@${image_addr} "[ -d ${dst} ]")
@@ -34,7 +34,7 @@ elif [ ${basevm_type} = "aws" ]; then
             ssh -i TESTKEY.pem -o StrictHostKeyChecking=no ec2-user@${image_addr} "sudo mkdir -p ${dst}"
         fi
         scp -r -i TESTKEY.pem -o StrictHostKeyChecking=no ${src} ec2-user@${image_addr}:${dst}
-        ssh -i TESTKEY.pem -o StrictHostKeyChecking=no ubuntu@${image_addr} "sudo mv ${src} ${dst}"
+        ssh -i TESTKEY.pem -o StrictHostKeyChecking=no ec2-user@${image_addr} "sudo mv ${src} ${dst}"
     elif [ ${os_type} = "ubuntu_20" -o ${os_type} = "ubuntu_18" -o ${os_type} = "ubuntu_16" ]; then
         if (ssh -i TESTKEY.pem -o StrictHostKeyChecking=no ubuntu@${image_addr} "[ -d ${dst} ]")
         then
