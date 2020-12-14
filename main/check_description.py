@@ -434,6 +434,10 @@ def check_description(filename, cr_dir):
                             if Storyboard.SRC not in content_keys:
                                 raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.SRC, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.COPY_CONTENT, guest_id))
                             else:
+                                # Check whether the source file or directory actually exists
+                                src = content[Storyboard.SRC]
+                                if not os.path.exists(src):
+                                    raise_flag("Tag '{}' value '{}' must be the name of an existing file or directory (section '{}', for subsection '{}', task '{}' of guest '{}').".format(Storyboard.SRC, src, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.COPY_CONTENT, guest_id))
                                 content_keys.remove(Storyboard.SRC)
 
                             # DST tag
@@ -494,6 +498,10 @@ def check_description(filename, cr_dir):
                             if Storyboard.RULE not in rule_keys:
                                 raise_flag("Tag '{0}' is missing in section '{1}', subsection '{2}' for task '{3}' of guest '{4}'.".format(Storyboard.RULE, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.FIREWALL_RULES, guest_id))
                             else:
+                                # Check whether the firewall rules file actually exists
+                                rule_file = rule[Storyboard.RULE]
+                                if not os.path.exists(rule_file):
+                                    raise_flag("Tag '{}' value '{}' must be the name of an existing firewall rules file (section '{}', for subsection '{}', task '{}' of guest '{}').".format(Storyboard.RULE, rule_file, Storyboard.GUEST_SETTINGS, Storyboard.TASKS, Storyboard.FIREWALL_RULES, guest_id))
                                 rule_keys.remove(Storyboard.RULE)
 
                             # Check whether there are any (unknown) tags left in the list
