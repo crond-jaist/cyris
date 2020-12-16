@@ -957,7 +957,7 @@ class CyberRangeCreation():
                 for clone_guest in instance.getCloneGuestList():
                     cloned_name = "{0}_cr{1}_{2}_{3}".format(clone_guest.getGuestId(), self.clone_setting.getRangeId(),instance.getIndex(),clone_guest.getIndex())
                     if_addr = clone_guest.getNicAddrDict().values()[0]
-                    information += "\n  Guest name: {0}\n  Login: ssh - i {1}.pem {2}@{3}".format( cloned_name, key_name, os_type, if_addr)
+                    information += "\n  Guest name: {0}\n  Login: ssh -i {1}.pem {2}@{3}".format( cloned_name, key_name, os_type, if_addr)
                     instance_index += 1
 
         if "{info_cr_instances}" in contents:
@@ -1198,7 +1198,7 @@ class CyberRangeCreation():
             #create instances
             ins_dic = {}
             for guest in self.guests:
-                basevm_id = guest.getGuestId()
+                basevm_id = guest.getBasevmName()
                 print "* INFO:  cyris_aws: Start Create EC2 Instance as base VMs for guest '{0}'... ".format(basevm_id)
                 numOfIns = 1
                 ins_ids = create_instances(client, gNames, basevm_id, numOfIns, guest.basevm_os_type)
@@ -1207,7 +1207,7 @@ class CyberRangeCreation():
             ######## check the state whether is running ########
             print "* DEBUG: cyris_aws: Checking whether the Status of Instances are running..."
             for guest in self.guests:
-                basevm_id = guest.getGuestId()
+                basevm_id = guest.getBasevmName()
                 ins_ids =  ins_dic[basevm_id]
                 print "* DEBUG: cyris_aws: - Checking guest '{0}' EC2 Instance...".format(basevm_id)
                 for i in range(20):
@@ -1219,7 +1219,7 @@ class CyberRangeCreation():
             ######## get IP ########
             print "* INFO:  cyris: Check that the base VMs are up."
             for guest in self.guests:
-                basevm_id = guest.getGuestId()
+                basevm_id = guest.getBasevmName()
                 ipAddr = publicIp_get(client,ins_dic[basevm_id])
                 guest.setBasevmAddr(ipAddr)
 
@@ -1479,7 +1479,7 @@ class CyberRangeCreation():
             ########## check whether stop completed for all base VMs before distributing images ##########
             print "* DEBUG: cyris_aws: Checking whether stop completed for all EC2 Instances..."
             for guest in self.guests:
-                basevm_id = guest.getGuestId()
+                basevm_id = guest.getBasevmName()
                 ins_ids =  ins_dic[basevm_id]
                 print "* DEBUG: cyris_aws: -Checking guest '{0}' base VM...".format(basevm_id)
                 for i in range(20):
@@ -1495,14 +1495,14 @@ class CyberRangeCreation():
 
             img_dic = {}
             for guest in self.guests:
-                ami_name = guest.getGuestId()
-                img_id = create_img(client, ins_dic[ami_name][0],ami_name)
+                ami_name = guest.getBasevmName()
+                img_id = create_img(client, ins_dic[ami_name][0], ami_name)
                 img_dic[ami_name] = img_id
 
-            ########## check whether the AMI images are availabe ##########
-            print "* DEBUG: cyris_aws: Checking whether the created AMI images are availabe..."
+            ########## check whether the AMI images are available ##########
+            print "* DEBUG: cyris_aws: Checking whether the created AMI images are available..."
             for guest in self.guests:
-                img_id = img_dic[guest.getGuestId()]
+                img_id = img_dic[guest.getBasevmName()]
                 for i in range(40):
                     res = describe_image(client, img_id)
                     print "* DEBUG: cyris_aws:   AMI for '{0}' => '{1}'".format(guest.getBasevmName(), res)
@@ -1522,8 +1522,11 @@ class CyberRangeCreation():
             for host in self.clone_setting.getCloneHostList():
                 for instance in host.getInstanceList():
                     for clone_guest in instance.getCloneGuestList():
+                        for guest in self.guests:
+                            if guest.getGuestId() == clone_guest.getGuestId():
+                                basevmName = guest.getBasevmName()
                         cloned_name = "{0}_cr{1}_{2}_{3}".format(clone_guest.getGuestId(), self.clone_setting.getRangeId(),instance.getIndex(),clone_guest.getIndex())
-                        img_id = img_dic[clone_guest.getGuestId()]
+                        img_id = img_dic[basevmName]
                         numOfIns = 1
                         ins_ids = clone_instances(client, gNames, key_name, cloned_name, numOfIns,img_id)
                         ins_dic[cloned_name] = ins_ids
