@@ -97,6 +97,7 @@ def main(argv):
     image_names = []
     image_id = []
     security_name = []
+    ins_list = []
 
     # Get the AWS account ID from the first command-line argument (if provided)
     if len(argv) >= 1:
@@ -108,22 +109,28 @@ def main(argv):
     print('* Clean up the AWS cyber range...')
     client = boto3.client('ec2', region_name='us-east-1')
     ins_ids, gNames, ins_names = describe(client)
-
-    print(ins_ids.keys())
+    # Build list of related AMI ids
     for i in ins_names.items():
         for j in image_names:
             if j in i[0]:
                 image_id.append(i[1])
 
     print('* Terminate instances...')
-    terminate_ins(client, ins_ids.values())
+    for ins in ins_ids.items():
+        for i in image_names:
+            if i in ins[0]:
+                ins_list.append(ins[1])
+    #print(ins_list)
+    terminate_ins(client, ins_list)
 
     print('* Delete security groups...')
     for gName in gNames:
         if gName in security_name:
+            #print(gName)
             delete_SG(client, gName)
 
     print('* Deregister AMIs...')
+    #print(image_id)
     del_img(client, aws_account_id, image_id)
     print('* AWS clean up completed.')
 
