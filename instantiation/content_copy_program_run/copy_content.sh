@@ -33,7 +33,7 @@ elif [ ${basevm_type} = "aws" ]; then
         else
             ssh -i TESTKEY.pem -o StrictHostKeyChecking=no ec2-user@${image_addr} "sudo mkdir -p ${dst}"
         fi
-        scp -r -i TESTKEY.pem -o StrictHostKeyChecking=no ${src} ec2-user@${image_addr}:${dst}
+        scp -r -i TESTKEY.pem -o StrictHostKeyChecking=no ${src} ec2-user@${image_addr}:
         ssh -i TESTKEY.pem -o StrictHostKeyChecking=no ec2-user@${image_addr} "sudo mv ${src} ${dst}"
     elif [ ${os_type} = "ubuntu_20" -o ${os_type} = "ubuntu_18" -o ${os_type} = "ubuntu_16" ]; then
         if (ssh -i TESTKEY.pem -o StrictHostKeyChecking=no ubuntu@${image_addr} "[ -d ${dst} ]")
