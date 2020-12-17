@@ -1174,13 +1174,14 @@ class CyberRangeCreation():
 
 	# Deal with AWS
 	elif basevm_type == "aws":
-	    print "* INFO:  cyris_aws: Base VM type is  AWS"
+	    print "* INFO: cyris_aws: Base VM type is AWS"
 	    client = boto3.client('ec2', region_name='us-east-1')
 
 	    # create a security group
 	    gName = gName = 'cr' + str(self.range_id) + '-sg'
 	    status = create_security_group(client, gName)
-	    print(status)
+	    if not status:
+		print('* ERROR: cyris_aws:   Create Security Group => FAILURE')
 
 	    # edit ingress
 	    edit_ingress(client, gName)
@@ -1192,32 +1193,32 @@ class CyberRangeCreation():
             r = describe_security_groups(client, gNames)
             ipPermissions = r['SecurityGroups'][0]['IpPermissions']
             if ipPermissions:
-                print('* DEBUG: cyris_aws:   Edit Security Group Ingress => SUCCESS')
+                if DEBUG: print('* DEBUG: cyris_aws:   Edit Security Group Ingress => SUCCESS')
             else:
-                print('* DEBUG: cyris_aws:   Edit Security Group Ingress => FAILURE')
+                print('* ERROR: cyris_aws:   Edit Security Group Ingress => FAILURE')
             #create instances
             ins_dic = {}
             for guest in self.guests:
                 basevm_id = guest.getBasevmName()
-                print "* INFO:  cyris_aws: Start Create EC2 Instance as base VMs for guest '{0}'... ".format(basevm_id)
+                print "* INFO: cyris_aws: Start Create EC2 Instance as base VMs for guest '{0}'... ".format(basevm_id)
                 numOfIns = 1
                 ins_ids = create_instances(client, gNames, basevm_id, numOfIns, guest.basevm_os_type)
                 ins_dic[basevm_id] = ins_ids
 
             ######## check the state whether is running ########
-            print "* DEBUG: cyris_aws: Checking whether the Status of Instances are running..."
+            print "* INFO: cyris_aws: Checking whether the Status of Instances are running..."
             for guest in self.guests:
                 basevm_id = guest.getBasevmName()
                 ins_ids =  ins_dic[basevm_id]
-                print "* DEBUG: cyris_aws: - Checking guest '{0}' EC2 Instance...".format(basevm_id)
+                print "* INFO: cyris_aws: - Checking guest '{0}' EC2 Instance...".format(basevm_id)
                 for i in range(20):
                     res = describe_instance_status(client, ins_ids)
-                    print "* DEBUG: cyris_aws:   Guest '{0}' EC2 Instance => {1}".format(basevm_id,res)
+                    if DEBUG: print "* DEBUG: cyris_aws:   Guest '{0}' EC2 Instance => {1}".format(basevm_id,res)
                     if res == 'running': break
                     time.sleep(5)
 
             ######## get IP ########
-            print "* INFO:  cyris: Check that the base VMs are up."
+            print "* INFO: cyris: Check that the base VMs are up."
             for guest in self.guests:
                 basevm_id = guest.getBasevmName()
                 ipAddr = publicIp_get(client,ins_dic[basevm_id])
@@ -1470,26 +1471,26 @@ class CyberRangeCreation():
         elif basevm_type == "aws":
 
             ########## shutdown base images ##########
-            print "* INFO:  cyris_aws: Stop the EC2 Instances before cloning."
+            print "* INFO: cyris_aws: Stop the EC2 Instances before cloning."
             stop_ins_ids = []
             for k,v in ins_dic.items():
                 stop_ins_ids += v
                 stop_instances(client, stop_ins_ids)
 
             ########## check whether stop completed for all base VMs before distributing images ##########
-            print "* DEBUG: cyris_aws: Checking whether stop completed for all EC2 Instances..."
+            print "* INFO: cyris_aws: Checking whether stop completed for all EC2 Instances..."
             for guest in self.guests:
                 basevm_id = guest.getBasevmName()
                 ins_ids =  ins_dic[basevm_id]
-                print "* DEBUG: cyris_aws: -Checking guest '{0}' base VM...".format(basevm_id)
+                print "* INFO: cyris_aws: - Checking guest '{0}' base VM...".format(basevm_id)
                 for i in range(20):
                     res = describe_instance_status(client, ins_ids)
-                    print "* DEBUG: cyris_aws:   Base VM '{0}' => '{1}'".format(guest.getBasevmName(), res)
+                    if DEBUG: print "* DEBUG: cyris_aws:   Base VM '{0}' => '{1}'".format(guest.getBasevmName(), res)
                     if res == 'stopped': break
                     time.sleep(5)
 
             ########## parallel create AMI images on AWS ##########
-            print "* INFO:  cyris_aws: Create the AMI images for cloning."
+            print "* INFO: cyris_aws: Create the AMI images for cloning."
             if TIME_MEASURE == True:
                 start_scp = time.time()
 
@@ -1500,12 +1501,12 @@ class CyberRangeCreation():
                 img_dic[ami_name] = img_id
 
             ########## check whether the AMI images are available ##########
-            print "* DEBUG: cyris_aws: Checking whether the created AMI images are available..."
+            print "* INFO: cyris_aws: Checking whether the created AMI images are available..."
             for guest in self.guests:
                 img_id = img_dic[guest.getBasevmName()]
                 for i in range(40):
                     res = describe_image(client, img_id)
-                    print "* DEBUG: cyris_aws:   AMI for '{0}' => '{1}'".format(guest.getBasevmName(), res)
+                    if DEBUG: print "* DEBUG: cyris_aws:   AMI for '{0}' => '{1}'".format(guest.getBasevmName(), res)
                     if res == 'available': break
                     time.sleep(5)
 
@@ -1513,7 +1514,7 @@ class CyberRangeCreation():
                 done_scp = time.time()
 
             ########## parallel do the clone phase on AWS ##########
-            print "* INFO:  cyris_aws: Start the cloned Instances with created AMI images."
+            print "* INFO: cyris_aws: Start the cloned Instances with created AMI images."
             if TIME_MEASURE == True:
                 start_parallel_clone = time.time()
 
@@ -1532,18 +1533,18 @@ class CyberRangeCreation():
                         ins_dic[cloned_name] = ins_ids
 
             ########## check if EC2 Instances are running ##########
-            print "* INFO:  cyris_aws: Wait for the cloned instances to start."
-            print "* DEBUG: cyris_aws: Checking whether the cloned instances are running..."
+            print "* INFO: cyris_aws: Wait for the cloned instances to start."
+            print "* INFO: cyris_aws: Checking whether the cloned instances are running..."
             for host in self.clone_setting.getCloneHostList():
                 for instance in host.getInstanceList():
-                    print "* DEBUG: cyris_aws: - Checking instance #{0}...".format(instance.getIndex())
+                    print "* INFO: cyris_aws: - Checking instance #{0}...".format(instance.getIndex())
                     for clone_guest in instance.getCloneGuestList():
                         #print "* DEBUG: cyris_aws: - Checking cloned guest '{0}'...".format(clone_guest.getGuestId())
                         for i in range(20):
                             cloned_name = "{0}_cr{1}_{2}_{3}".format(clone_guest.getGuestId(), self.clone_setting.getRangeId(),instance.getIndex(),clone_guest.getIndex())
                             ins_ids = ins_dic[cloned_name]
                             res = describe_instance_status(client,ins_ids)
-                            print "* DEBUG: cyris_aws:   Cloned Guest EC2 Instance '{0}' => {1}".format(cloned_name,res)
+                            if DEBUG: print "* DEBUG: cyris_aws:   Cloned Guest EC2 Instance '{0}' => {1}".format(cloned_name,res)
                             if res == 'running':
                                 pub_IP_address = publicIp_get(client,ins_ids)
                                 clone_guest.addNicAddrDict(int(instance.getIndex()),pub_IP_address)

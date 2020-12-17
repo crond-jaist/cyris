@@ -7,11 +7,7 @@ def create_security_group(client,gName):
         Description='SG for SSH-access',
         GroupName=gName
     )
-    if groupId:
-        status = '* DEBUG: cyris_aws:   Create Security Group => SUCCESS'
-    else:
-        status = '* DEBUG: cyris_aws:   Create Security Group => FAILURE'
-    return status
+    return groupId
 
 '''
 # example

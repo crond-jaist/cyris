@@ -60,11 +60,11 @@ def create_instances(client, gNames, basevm_id, numOfIns,basevm_os_type):
     n = len(response['Instances'])
 
     if n == numOfIns:
-        print('* INFO:  cyris_aws: %s instance(s) created.'%(n))
+        print('* INFO: cyris_aws: %s instance(s) created.'%(n))
     elif n < numOfIns:
-        print('* INFO:  cyris_aws: Limit was exceeded => only %s instance(s) created.'%(n))
+        print('* ERROR: cyris_aws: Limit was exceeded => only %s instance(s) created.'%(n))
     else:
-        print('* INFO:  cyris_aws: Instance creation failed.')
+        print('* ERROR: cyris_aws: Instance creation failed.')
 
     ins_ids = []
     for x in response['Instances']:
