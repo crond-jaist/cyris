@@ -88,6 +88,6 @@ if time != "none":
     elif basevm_type == 'aws':
         correct_date = subprocess.check_output("date +%Y%m%d", shell=True)
         correct_time = subprocess.check_output("date +%T", shell=True)
-        os.system("ssh -i TESTKEY.pem ec2-user@{0} date +%Y%m%d -s {1}".format(attacked_addr, correct_date))
-        os.system("ssh -i TESTKEY.pem ec2-user@{0} date +%T -s {1}".format(attacked_addr, correct_time))
-        os.system("ssh -i TESTKEY.pem ec2-user@{0} sort --stable --reverse --key=1,2 /var/log/secure -o /var/log/secure".format(attacked_addr))
+        os.system("ssh -i TESTKEY.pem ec2-user@{0} sudo date +%Y%m%d -s {1}".format(attacked_addr, correct_date))
+        os.system("ssh -i TESTKEY.pem ec2-user@{0} sudo date +%T -s {1}".format(attacked_addr, correct_time))
+        os.system("ssh -i TESTKEY.pem ec2-user@{0} sudo sort --stable --reverse --key=1,2 /var/log/secure -o /var/log/secure".format(attacked_addr))

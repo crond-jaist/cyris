@@ -34,7 +34,8 @@ elif [ ${basevm_type} = "aws" ]; then
             ssh -i TESTKEY.pem -o StrictHostKeyChecking=no ec2-user@${image_addr} "sudo mkdir -p ${dst}"
         fi
         scp -r -i TESTKEY.pem -o StrictHostKeyChecking=no ${src} ec2-user@${image_addr}:
-        ssh -i TESTKEY.pem -o StrictHostKeyChecking=no ec2-user@${image_addr} "sudo mv ${src} ${dst}"
+        # Special syntax for ${src} to preserve the last part of the name (after /) for the local 'mv'
+        ssh -i TESTKEY.pem -o StrictHostKeyChecking=no ec2-user@${image_addr} "sudo mv ${src##*/} ${dst}"
     elif [ ${os_type} = "ubuntu_20" -o ${os_type} = "ubuntu_18" -o ${os_type} = "ubuntu_16" ]; then
         if (ssh -i TESTKEY.pem -o StrictHostKeyChecking=no ubuntu@${image_addr} "[ -d ${dst} ]")
         then
@@ -43,6 +44,7 @@ elif [ ${basevm_type} = "aws" ]; then
             ssh -i TESTKEY.pem -o StrictHostKeyChecking=no ubuntu@${image_addr} "sudo mkdir -p ${dst}"
         fi
         scp -r -i TESTKEY.pem -o StrictHostKeyChecking=no ${src} ubuntu@${image_addr}:
-        ssh -i TESTKEY.pem -o StrictHostKeyChecking=no ubuntu@${image_addr} "sudo mv ${src} ${dst}"
+        # Special syntax for ${src} to preserve the last part of the name (after /) for the local 'mv'
+        ssh -i TESTKEY.pem -o StrictHostKeyChecking=no ubuntu@${image_addr} "sudo mv ${src##*/} ${dst}"
     fi
 fi
