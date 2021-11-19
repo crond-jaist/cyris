@@ -1,9 +1,9 @@
 
 # Required configuration for iptables service
-*filter
-:INPUT ACCEPT [0:0]
-:FORWARD ACCEPT [0:0]
-:OUTPUT ACCEPT [0:0]
+#*filter
+#:INPUT ACCEPT [0:0]
+#:FORWARD ACCEPT [0:0]
+#:OUTPUT ACCEPT [0:0]
 
 # Add below any firewall rules that you would like to appear for all the cyber range guests,
 # as the firewall rules provided in the 'firewall_rules' task are appended to this file
