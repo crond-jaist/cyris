@@ -651,6 +651,10 @@ class CloneSetting(object):
             host_dict = OrderedDict()
             host_dict[Storyboard.HOST_ID] = host.getHostId()
             host_dict[Storyboard.MGMT_ADDR] = host.getMgmtAddr()
+
+            # CHANGE: add mgmt account to details file
+            host_dict[Storyboard.ACCOUNT] = host.getAccount() 
+
             host_dict[Storyboard.INSTANCE_COUNT] = len(host.getInstanceList())
             instancedict_list = []
             for instance in host.getInstanceList():

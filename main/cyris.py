@@ -28,6 +28,8 @@ from clone_environment import VMClone
 import parse_config
 from check_description import check_description
 from storyboard import Storyboard
+# import instance_management class
+from instance_management import InstanceManagement
 
 # AWS support
 import boto3
@@ -53,12 +55,12 @@ DEBUG2 = False
 DESTROY_ON_ERROR = False
 
 # Settings for parallel ssh and scp
-PSSH_TIMEOUT = 300     # Seconds until the connections will be timed out
+PSSH_TIMEOUT = 1200     # Seconds until the connections will be timed out
 PSSH_CONCURRENCY = 50  # Maximum number of concurrent connections
 PSCP_CONCURRENCY = 50  # Maximum number of concurrent connections
 
 # Settings for check ssh function: total timeout and for one try
-CHECK_SSH_TIMEOUT_TOTAL = 120 # Longer for AWS: 300?
+CHECK_SSH_TIMEOUT_TOTAL = 1200 # Longer for AWS: 300?
 CHECK_SSH_TIMEOUT_ONCE = 5    # Longer for AWS: 60?
 CHECK_SSH_CONNECTIVITY_INDICATOR = "Permission denied"
 
@@ -137,76 +139,103 @@ class CyberRangeCreation():
                 DEBUG = True
                 print "* DEBUG: cyris: Debug mode enabled."
 
-        # Then with command-line arguments
-        if len(args)<2:
+        if (len(args)>0):
+            self.action = args[0]
+        else:
             print "* ERROR: cyris: Not enough command-line arguments."
             self.usage()
             quit(-1)
 
-        # Get name of description file
-        self.training_description = args[0]
+        # Then with command-line arguments
+        if (self.action == "create"):
+            if len(args)<3:
+                print "* ERROR: cyris: Not enough command-line arguments."
+                self.usage()
+                quit(-1)
+        elif (self.action in ["list", "destroy", "shutdown", "start"]):
+            if len(args)<4:
+                print "* ERROR: cyris: Not enough command-line arguments."
+                self.usage()
+                quit(-1)
+        else:
+            print "* ERROR: cyris: Action not recognized."
+            self.usage()
+            quit(-1)
 
         print "#########################################################################"
         print "%s: Cyber Range Instantiation System" % (self.get_version_string())
         print "#########################################################################"
 
         # Get global parameters from CONFIG file.
-        print "* INFO: cyris: Parse the configuration file."
-        ABS_PATH, CR_DIR, GW_MODE, GW_ACCOUNT, GW_MGMT_ADDR, GW_INSIDE_ADDR, USER_EMAIL = parse_config.parse_config(args[1])
-        # Check that parse was successful
-        if ABS_PATH == False:
-            self.creation_log_file = "" # Needed for handle_error() to work correctly
-            self.handle_error()
-            quit(-1)
-
-        #self.training_description = sys.argv[1]
-        self.hosts = []
-        self.guests = []
-        self.clone_setting = None
-        # directory containing coressponding config files
-        self.directory = ""
-        # Absolute path of logs of the execution.
-        self.global_log_file = "{0}logs/cr_creation.log".format(ABS_PATH)
-        self.time_measure_file = "{0}logs/cr_creation_time.txt".format(ABS_PATH)
-
-        # Absolute path of file which records ip addresses of current running base images
-        self.cur_running_ipaddr_file = "{0}settings/running_ipaddr.txt".format(ABS_PATH)
-
-        self.global_log_message = ""
-        self.global_time_message = ""
-        i = creation_datetime
-        self.global_log_message += "\n##########################################################################"
-        self.global_log_message += "\n##########################################################################"
-        self.global_log_message += "\nCyber range creation {0}\n".format(i.strftime('%Y/%m/%d %H:%M:%S'))
-        self.global_time_message += "\n##########################################################################"
-        self.global_time_message += "\n##########################################################################"
-        self.global_time_message += "\nCyber range creation {0}\n".format(i.strftime('%Y/%m/%d %H:%M:%S'))
-
-        # a list of config files created in individual hosts during cloning part
-        self.setup_fwrule_file = ""                     # for setting up fwrule on each vms
-        self.setup_dfgw_file = ""                       # for setting up default gateways on each vms
-        self.create_bridges_file = ""                   # for creating bridges of each cyber range instance
-        self.entry_points_file = ""                     # for individual hosts to check ping their entry points after vms are created
-        self.clone_file = ""                            # for cloning process
-        self.create_vms_file = ""                       # for creating vms from base images
-        self.create_tunnels_file = ""                   # for creating ssh tunnels for entry points
-        self.create_entry_accounts_file = ""            # for creating random accounts and passwds on entry points
-        self.install_wordpress_file = ""                # for installing wordpress on webservers (only needed in level 2)
-        self.destruction_file = ""                      # for destructing cyber range on individual hosts
-        self.pssh_file = ""                             # for containing a list of hosts for parallel-ssh
-        self.pscp_file = ""                             # for containing a list of hosts for parallel-scp
-        self.prepare_prg_afcln_file = ""                # for copying post-cloned programs on other hosts
-        self.install_prg_afcln_file = ""                # for executing programs on individual guest after being cloned
-        self.creation_status_file = ""                  # for returning the creation process result: success or failure
-        self.creation_log_file = ""                     # for recording log of the creation process
-
-        if GW_MODE:
-            if GW_ACCOUNT is None or GW_MGMT_ADDR is None or GW_INSIDE_ADDR is None:
-                print "* ERROR: cyris: If GW_MODE is enabled in the config file, then GW_ACCOUNT, GW_MGMT_ADDR and"
-                print "         GW_INSIDE_ADDR must also be assigned valid values."
-
+        if (self.action == "create"):
+            print "* INFO: cyris: Parse the configuration file."
+            ABS_PATH, CR_DIR, GW_MODE, GW_ACCOUNT, GW_MGMT_ADDR, GW_INSIDE_ADDR, USER_EMAIL = parse_config.parse_config(args[2])
+            # Check that parse was successful
+            if ABS_PATH == False:
+                self.creation_log_file = "" # Needed for handle_error() to work correctly
                 self.handle_error()
                 quit(-1)
+        else:
+            self.insmgmt = InstanceManagement()
+            self.insmgmt.parse_config_file(args[3])
+
+        if (self.action == "create"):
+            # Get name of description file
+            self.training_description = args[1]
+            #self.training_description = sys.argv[1]
+            self.hosts = []
+            self.guests = []
+            self.clone_setting = None
+            # directory containing coressponding config files
+            self.directory = ""
+            # Absolute path of logs of the execution.
+            self.global_log_file = "{0}logs/cr_creation.log".format(ABS_PATH)
+            self.time_measure_file = "{0}logs/cr_creation_time.txt".format(ABS_PATH)
+
+            # Absolute path of file which records ip addresses of current running base images
+            self.cur_running_ipaddr_file = "{0}settings/running_ipaddr.txt".format(ABS_PATH)
+
+            self.global_log_message = ""
+            self.global_time_message = ""
+            i = creation_datetime
+            self.global_log_message += "\n##########################################################################"
+            self.global_log_message += "\n##########################################################################"
+            self.global_log_message += "\nCyber range creation {0}\n".format(i.strftime('%Y/%m/%d %H:%M:%S'))
+            self.global_time_message += "\n##########################################################################"
+            self.global_time_message += "\n##########################################################################"
+            self.global_time_message += "\nCyber range creation {0}\n".format(i.strftime('%Y/%m/%d %H:%M:%S'))
+
+            # a list of config files created in individual hosts during cloning part
+            self.setup_fwrule_file = ""                     # for setting up fwrule on each vms
+            self.setup_dfgw_file = ""                       # for setting up default gateways on each vms
+            self.create_bridges_file = ""                   # for creating bridges of each cyber range instance
+            self.entry_points_file = ""                     # for individual hosts to check ping their entry points after vms are created
+            self.clone_file = ""                            # for cloning process
+            self.create_vms_file = ""                       # for creating vms from base images
+            self.create_tunnels_file = ""                   # for creating ssh tunnels for entry points
+            self.create_entry_accounts_file = ""            # for creating random accounts and passwds on entry points
+            self.install_wordpress_file = ""                # for installing wordpress on webservers (only needed in level 2)
+            self.destruction_file = ""                      # for destructing cyber range on individual hosts
+            self.pssh_file = ""                             # for containing a list of hosts for parallel-ssh
+            self.pscp_file = ""                             # for containing a list of hosts for parallel-scp
+            self.prepare_prg_afcln_file = ""                # for copying post-cloned programs on other hosts
+            self.install_prg_afcln_file = ""                # for executing programs on individual guest after being cloned
+            self.creation_status_file = ""                  # for returning the creation process result: success or failure
+            self.creation_log_file = ""                     # for recording log of the creation process
+
+            if GW_MODE:
+                if GW_ACCOUNT is None or GW_MGMT_ADDR is None or GW_INSIDE_ADDR is None:
+                    print "* ERROR: cyris: If GW_MODE is enabled in the config file, then GW_ACCOUNT, GW_MGMT_ADDR and"
+                    print "         GW_INSIDE_ADDR must also be assigned valid values."
+
+                    self.handle_error()
+                    quit(-1)
+        else:
+            self.range_id = args[1]
+            self.instances_string = args[2]
+        
+
+        
 
 
     #########################################################################
@@ -376,7 +405,8 @@ class CyberRangeCreation():
             range_id = element["clone_settings"][0]["range_id"]
             self.range_id = range_id # Save for future reference
             clone_host_list = []
-
+            
+            instance_ind = 1
             for host in element["clone_settings"][0]["hosts"]:
                 # The 'host_id' of 'host' may contain a list of ids,
                 # so we split the list if needed
@@ -425,10 +455,11 @@ class CyberRangeCreation():
                                     if guest_id==vm_guest.getGuestId():
                                         os_type=vm_guest.getBasevmOSType()
                                 #clone_guest = CloneGuest(guest_id, k, has_fw_setup, fw_rules, is_entry_point,os_type)
-                                clone_guest = CloneGuest(guest_id, k, i, range_id,has_fw_setup, fw_rules, is_entry_point,os_type)
+                                clone_guest = CloneGuest(guest_id, k, instance_ind, range_id,has_fw_setup, fw_rules, is_entry_point,os_type)
                                 clone_guest_list.append(clone_guest)
-                        instance = CloneInstance(i, clone_guest_list, clone_subnw_list)
+                        instance = CloneInstance(instance_ind, clone_guest_list, clone_subnw_list)
                         instance_list.append(instance)
+                        instance_ind = instance_ind + 1
 
                     # Find host with same id in the hosts list and use it to initialize the CloneHost object
                     # We use a new object 'actual_host' because the object 'host' above may contain a list of host ids
@@ -634,7 +665,7 @@ class CyberRangeCreation():
                         interpreter = program["interpreter"]
                         args = "none"
                         if "args" in program.keys():
-#                            args = program["args"]
+                            #args = program["args"]
                             args = urllib.quote(program["args"])
                         # If "execute_time" tag isn't included or is specified as "before_clone", then the command will be added
                         # to the command_list. Otherwise, the program will be added to the post_execute_program_list
@@ -1023,7 +1054,9 @@ class CyberRangeCreation():
     # Print usage information
     def usage(self):
         print "OVERVIEW: CyRIS: Cyber Range Instantiation System\n"
-        print "USAGE: cyris.py [options] RANGE_DESCRIPTION CONFIG_FILE\n"
+        print "USAGE: cyris.py [options] create RANGE_DESCRIPTION CONFIG_FILE\n"
+        print "USAGE: cyris.py [options] ACTION RANGE_ID INSTANCES CONFIG_FILE\n"
+        print "       ACTION can be list, destroy, shutdown or start\n"
         print "OPTIONS:"
         print "-h, --help              Display help"
         print "-d, --destroy-on-error  In case of error, try to destroy cyber range"
@@ -1036,6 +1069,22 @@ class CyberRangeCreation():
         # Check prerequisites
         print "* INFO: cyris: Check that prerequisite conditions are met."
         self.check_prerequsites()
+
+        if (self.action in ["list","destroy","shutdown","start"]):
+
+            # parse the instances argument
+            instances_list = self.insmgmt.parse_instances_arg(self.instances_string)
+            if instances_list is None:
+                print "* ERROR: cyris: Instances argument is not correct."
+                self.usage()
+                quit(-1)
+
+            # Invoke the desired action
+            if (self.action in ["destroy", "shutdown", "start"]):
+                self.insmgmt.control_instances(self.action, self.range_id, instances_list)
+            elif (self.action == "list"):
+                self.insmgmt.list_status(self.range_id, instances_list)
+            return
 
         # Parse description
         print "* INFO: cyris: Parse the cyber range description."
