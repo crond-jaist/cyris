@@ -26,10 +26,10 @@ if [ ${basevm_type} = "kvm" ]; then
     #sshpass -p ${image_passwd} ssh root@${image_addr} "yum install iptables-services -y"
     ## Stop the default CentOS 7 firewall 'firewalld' and start iptables
     echo "ruleset_modify.sh: Stop firewalld and start iptables services..."
-    ssh root@${image_addr} "systemctl stop firewalld; systemctl start iptables; systemctl start ip6tables"
+    #ssh root@${image_addr} "systemctl stop firewalld; systemctl start iptables; systemctl start ip6tables"
     ## Disable firewalld and enable iptables
     echo "ruleset_modify.sh: Disable firewalld and enable iptables services..."
-    ssh root@${image_addr} "systemctl disable firewalld; systemctl mask firewalld; systemctl enable iptables; systemctl enable ip6tables"
+    #ssh root@${image_addr} "systemctl disable firewalld; systemctl mask firewalld; systemctl enable iptables; systemctl enable ip6tables"
 
     # Prepare the new iptables configuration
     ## Copy 'iptables_template' ruleset base to a new file called 'iptables'
@@ -44,7 +44,7 @@ if [ ${basevm_type} = "kvm" ]; then
     # Restore iptables rules from configuration file
     echo "ruleset_modify.sh: Restore iptables configuration from file..."
     echo "                   (will also appear in the cloned VMs on reboot)"
-    ssh root@${image_addr} "iptables-restore /etc/sysconfig/iptables";
+    #ssh root@${image_addr} "iptables-restore /etc/sysconfig/iptables";
 
 elif [ ${basevm_type} = "aws" ]; then
     if [ ${os_type} = "amazon_linux" -o ${os_type} = "amazon_linux2" ]; then
